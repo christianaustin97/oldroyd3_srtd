@@ -22,8 +22,8 @@ applied to the O3 Model, and we do exactly that here.
 """
 
 from fenics import *
-#from mshr import *
 from meshdata import gen_mesh_jb
+from meshdata import gen_mesh_ldc
 import sys
 import os
 
@@ -155,35 +155,28 @@ def oldroyd_3_JB_EVSS(h, rad, ecc, eta, l1, mu1):
     
     
 # Lid-Driven Cavity Problem
-def oldroyd_3_LDC_EVSS(meshsize, corner_ref, total_ref, eta, l1, mu1):
+
+def oldroyd_3_LDC_EVSS(h, eta, l1, mu1):
+    
+    meshfile = "meshdata/lid_driven_cavity_h_%.4e.h5"%h
+    
+    if not os.path.exists(meshfile):
+        print("Creating mesh...")
+        gen_mesh_ldc.main(h)
+    
+    #then, simply read the mesh in 
+    mesh = Mesh() #empty mesh
+    infile = HDF5File(MPI.comm_world, meshfile, 'r')
+    infile.read(mesh, '/mesh', True) #for some reason, need this flag to import a mesh?
+    infile.close()
+    print("Mesh loaded into FEniCS")
+
     # boundary data
     g_top = Expression(("30.0*x[0]*x[0]*(1-x[0])*(1-x[0])", "0.0"), degree = 4) # 30x^2(1-x)^2, 30 gives it integral=1
     g_walls = Constant((0.0, 0.0)) #g=0 on walls
 
     # body forces
     f = Constant((0.0, 0.0)) # no body forces
-    
-    # Variational problem start: define domain and mesh
-    nx = meshsize; ny = meshsize
-    mesh = UnitSquareMesh(nx,ny, "crossed")
-
-    # Refine mesh near top corners, where singularities develop for this problem
-    for n in range(corner_ref): 
-        tl_markers = MeshFunction('bool', mesh, mesh.topology().dim(), False)
-        for cell in cells(mesh):
-            tl_markers[cell] = cell.contains(Point(0.0, 1.0))
-        mesh = refine(mesh, tl_markers)
-
-        tr_markers = MeshFunction('bool', mesh, mesh.topology().dim(), False)
-        for cell in cells(mesh):
-            tr_markers[cell] = cell.contains(Point(1.0, 1.0))
-        mesh = refine(mesh, tr_markers)
-    
-    for m in range(total_ref):
-        mesh = refine(mesh)
-    
-    # charcteristic mesh size for streamline upwinding
-    h = mesh.hmax()/4.0 # for no SUPG, h=0. Not sure how to make this optional yet. 
     
     # Element spaces
     V_elem = VectorElement("CG", triangle, 2) # Velocity, degree 2 elements

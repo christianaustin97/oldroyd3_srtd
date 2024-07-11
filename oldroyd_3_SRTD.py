@@ -23,8 +23,8 @@
 """
 
 from fenics import *
-#from mshr import *
 from meshdata import gen_mesh_jb
+from meshdata import gen_mesh_ldc
 import sys
 import os
 
@@ -225,32 +225,27 @@ def oldroyd_3_JB_SRTD(h, rad, ecc, eta, l1, mu1, max_iter, tol):
 
 # Lid-Driven Cavity Problem
 
-def oldroyd_3_LDC_SRTD(meshsize, corner_ref, total_ref,  eta, l1, mu1, max_iter, tol):
+def oldroyd_3_LDC_SRTD(h, eta, l1, mu1, max_iter, tol):
+
+    meshfile = "meshdata/lid_driven_cavity_h_%.4e.h5"%h
+    
+    if not os.path.exists(meshfile):
+        print("Creating mesh...")
+        gen_mesh_ldc.main(h)
+    
+    #then, simply read the mesh in 
+    mesh = Mesh() #empty mesh
+    infile = HDF5File(MPI.comm_world, meshfile, 'r')
+    infile.read(mesh, '/mesh', True) #for some reason, need this flag to import a mesh?
+    infile.close()
+    print("Mesh loaded into FEniCS")
+
     # boundary data
     g_top = Expression(("30.0*x[0]*x[0]*(1-x[0])*(1-x[0])", "0.0"), degree = 4) # 30x^2(1-x)^2, 30 gives it integral=1
     g_walls = Constant((0.0, 0.0)) #g=0 on walls
 
     # body forces
     f = Constant((0.0, 0.0)) # no body forces
-    
-    # Variational problem start: define domain and mesh
-    nx = meshsize; ny = meshsize
-    mesh = UnitSquareMesh(nx,ny, "crossed")
-
-    # Refine mesh near top corners, where singularities develop for this problem
-    for n in range(corner_ref): 
-        tl_markers = MeshFunction('bool', mesh, mesh.topology().dim(), False)
-        for cell in cells(mesh):
-            tl_markers[cell] = cell.contains(Point(0.0, 1.0))
-        mesh = refine(mesh, tl_markers)
-
-        tr_markers = MeshFunction('bool', mesh, mesh.topology().dim(), False)
-        for cell in cells(mesh):
-            tr_markers[cell] = cell.contains(Point(1.0, 1.0))
-        mesh = refine(mesh, tr_markers)    
-    
-    for m in range(total_ref):
-        mesh = refine(mesh)
     
     # Element spaces
     P_elem = FiniteElement("CG", triangle, 1) #pressure and auxiliary pressure, degree 1 elements
