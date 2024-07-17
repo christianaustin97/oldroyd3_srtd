@@ -49,7 +49,7 @@ plt.close()
 
 
 # solution plots
-solnfile = "plots/ldc_ucm_l1=%.3e"
+solnfile = "plots/ldc_ucm_l1=%.3e_h=%.4e"%(lambda1, h)
 u_srtd = oldroyd_3_LDC_SRTD(h, eta, lambda1, mu1, max_srtd_iters, srtd_tol)
 u_evss = oldroyd_3_LDC_EVSS(h, eta, lambda1, mu1)
 
@@ -60,7 +60,7 @@ plt.colorbar(fig, label = "magnitude")
 plt.savefig(solnfile + "_srtd_u.pdf", bbox_inches = 'tight')
 plt.close()
 
-fig = plot(sqrt(inner(u_srtd.velocity, u_srtd.velocity))) # Log colorbar add argument , norm=matplotlib.colors.SymLogNorm(linthresh)
+fig = plot(sqrt(inner(u_srtd.velocity, u_srtd.velocity))) # For log colorbar add argument "norm=matplotlib.colors.SymLogNorm(linthresh)"
 plt.title("Velocity Magnitude")
 plt.colorbar(fig)
 plt.savefig(solnfile + "_srtd_u_mag.pdf", bbox_inches = 'tight')
@@ -164,7 +164,7 @@ plt.savefig(pdffile, bbox_inches='tight')
 plt.close()
 
 # solution plots
-solnfile = "plots/jb_ucm_l1=%.3e"
+solnfile = "plots/jb_ucm_l1=%.3e_h=%.4e"%(lambda1, h)
 u_srtd = oldroyd_3_JB_SRTD(h, rad, ecc, eta, lambda1, mu1, max_srtd_iters, srtd_tol)
 u_evss = oldroyd_3_JB_EVSS(h, rad, ecc, eta, lambda1, mu1)
 
