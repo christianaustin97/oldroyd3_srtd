@@ -20,6 +20,9 @@ from math import log2 as log2 # For computing the rate
 import time # Timing the computations
 import csv # Saving Results
 
+# physical boundary parameter
+speed = 1.0
+
 # geometry parameters
 rad = 0.5
 ecc = 0.25
@@ -39,7 +42,7 @@ h_array = 0.2 * (2 ** h_array)
 
 # For saving the info
 ############# CHANGE THIS DIFFERENT METHODS ##############
-table_file = open('mesh_ref_jb_ucm_l1=%.3e_srtd.csv'%lambda1, 'w') 
+table_file = open('mesh_ref_jb_s=%.3e_ucm_l1=%.3e_srtd.csv'%(speed, lambda1), 'w') 
 writer = csv.writer(table_file)
 writer.writerow(['h','elements','$L^{2}$ error $\\vu$','$L^{2}$ rate $\\vu$', '$H^{1}$ error $\\vu$', '$H^{1}$ rate $\\vu$', '$L^{2}$ error $p$', '$L^{2}$ rate $p$','time(s)'])
 
@@ -80,7 +83,7 @@ for h in h_array:
     # Start solve
     ############# CHANGE THIS DIFFERENT METHODS ##############
     start_solve = time.time()
-    solution = oldroyd_3_JB_SRTD(h, rad, ecc, eta, lambda1, mu1, max_srtd_iters, srtd_tol)
+    solution = oldroyd_3_JB_SRTD(h, rad, ecc, speed, eta, lambda1, mu1, max_srtd_iters, srtd_tol)
     end_solve = time.time()
     solve_time = end_solve - start_solve
 

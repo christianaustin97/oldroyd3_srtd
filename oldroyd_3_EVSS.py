@@ -24,7 +24,6 @@ applied to the O3 Model, and we do exactly that here.
 from fenics import *
 from meshdata import gen_mesh_jb
 from meshdata import gen_mesh_ldc
-import sys
 import os
 
 class Results:
@@ -39,7 +38,9 @@ class Results:
 
 # Journal Bearing Problem 
 
-def oldroyd_3_JB_EVSS(h, rad, ecc, eta, l1, mu1):
+def oldroyd_3_JB_EVSS(h, rad, ecc, s, eta, l1, mu1):
+    # s is the tangential speed of the bearing 
+
     if(rad>=1 or rad<=0 or ecc<0 or rad+ecc>1):
         #throw exception, forgot how lol
         print("Error: Inputs not valid")
@@ -56,7 +57,6 @@ def oldroyd_3_JB_EVSS(h, rad, ecc, eta, l1, mu1):
     infile.read(mesh, '/mesh', True) #for some reason, need this flag to import a mesh?
     infile.close()
     print("Mesh loaded into FEniCS")
-    
     
     #boundaries of domain
     class Inner(SubDomain):
@@ -76,7 +76,7 @@ def oldroyd_3_JB_EVSS(h, rad, ecc, eta, l1, mu1):
     
     # Boundary data     
     speed_outer = 0.0 # counter-clockwise tangential speed of outer bearing, 
-    speed_inner = 1.0 # clockwise tangential speed of inner bearing, 
+    speed_inner = s # clockwise tangential speed of inner bearing, 
     g_inner = Expression(("s*(x[1]+ecc)/r", "-s*x[0]/r"), s=speed_inner, r=rad, ecc=ecc, degree=1) 
     g_outer = Expression(("-s*x[1]", "s*x[0]"), s=speed_outer, degree=1) # no slip on outer bearing 
     f = Constant((0.0, 0.0)) # no body forces
@@ -156,7 +156,8 @@ def oldroyd_3_JB_EVSS(h, rad, ecc, eta, l1, mu1):
     
 # Lid-Driven Cavity Problem
 
-def oldroyd_3_LDC_EVSS(h, eta, l1, mu1):
+def oldroyd_3_LDC_EVSS(h, s, eta, l1, mu1):
+    # s is the average velocity of the top lid 
     
     meshfile = "meshdata/lid_driven_cavity_h_%.4e.h5"%h
     
@@ -172,7 +173,7 @@ def oldroyd_3_LDC_EVSS(h, eta, l1, mu1):
     print("Mesh loaded into FEniCS")
 
     # boundary data
-    g_top = Expression(("30.0*x[0]*x[0]*(1-x[0])*(1-x[0])", "0.0"), degree = 4) # 30x^2(1-x)^2, 30 gives it integral=1
+    g_top = Expression(("s*30.0*x[0]*x[0]*(1-x[0])*(1-x[0])", "0.0"), s=s, degree = 4) # 30x^2(1-x)^2, 30 gives it integral=1
     g_walls = Constant((0.0, 0.0)) #g=0 on walls
 
     # body forces

@@ -12,6 +12,9 @@ import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import matplotlib
 
+# physical boundary parameter
+speed = 1.0
+
 # JB geometry parameters
 rad = 0.5
 ecc = 0.25
@@ -49,9 +52,9 @@ plt.close()
 
 
 # solution plots
-solnfile = "plots/ldc_ucm_l1=%.3e_h=%.4e"%(lambda1, h)
-u_srtd = oldroyd_3_LDC_SRTD(h, eta, lambda1, mu1, max_srtd_iters, srtd_tol)
-u_evss = oldroyd_3_LDC_EVSS(h, eta, lambda1, mu1)
+solnfile = "plots/ldc_s=%.3e_ucm_l1=%.3e_h=%.4e"%(speed, lambda1, h)
+u_srtd = oldroyd_3_LDC_SRTD(h, speed, eta, lambda1, mu1, max_srtd_iters, srtd_tol)
+u_evss = oldroyd_3_LDC_EVSS(h, speed, eta, lambda1, mu1)
 
 # SRTD Solution plots
 fig = plot(u_srtd.velocity)
@@ -164,9 +167,9 @@ plt.savefig(pdffile, bbox_inches='tight')
 plt.close()
 
 # solution plots
-solnfile = "plots/jb_ucm_l1=%.3e_h=%.4e"%(lambda1, h)
-u_srtd = oldroyd_3_JB_SRTD(h, rad, ecc, eta, lambda1, mu1, max_srtd_iters, srtd_tol)
-u_evss = oldroyd_3_JB_EVSS(h, rad, ecc, eta, lambda1, mu1)
+solnfile = "plots/jb_s=%.3e_ucm_l1=%.3e_h=%.4e"%(speed, lambda1, h)
+u_srtd = oldroyd_3_JB_SRTD(h, rad, ecc, speed, eta, lambda1, mu1, max_srtd_iters, srtd_tol)
+u_evss = oldroyd_3_JB_EVSS(h, rad, ecc, speed, eta, lambda1, mu1)
 
 # SRTD Solution plots
 fig = plot(u_srtd.velocity)

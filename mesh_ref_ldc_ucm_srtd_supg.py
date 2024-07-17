@@ -22,6 +22,9 @@ from math import log2 as log2 # For computing the rate
 import time # Timing the computations
 import csv # Saving Results
 
+# physical boundary parameter
+speed = 1.0
+
 # Fluid parameters
 eta = 1.0
 lambda1 = 1e-2
@@ -37,7 +40,7 @@ h_array = 0.1 * (2 ** h_array)
 
 # For saving the info
 ############# CHANGE THIS DIFFERENT METHODS ##############
-table_file = open('mesh_ref_ldc_ucm_l1=%.3e_srtd_supg.csv'%lambda1, 'w') 
+table_file = open('mesh_ref_ldc_s=%.3e_ucm_l1=%.3e_srtd_supg.csv'%(speed, lambda1), 'w') 
 writer = csv.writer(table_file)
 writer.writerow(['h','elements','$L^{2}$ error $\\vu$','$L^{2}$ rate $\\vu$', '$H^{1}$ error $\\vu$', '$H^{1}$ rate $\\vu$', '$L^{2}$ error $p$', '$L^{2}$ rate $p$','time(s)'])
 
@@ -78,7 +81,7 @@ for h in h_array:
     # Start solve
     ############# CHANGE THIS DIFFERENT METHODS ##############
     start_solve = time.time()
-    solution = oldroyd_3_LDC_SRTD_SUPG(h, eta, lambda1, mu1, max_srtd_iters, srtd_tol)
+    solution = oldroyd_3_LDC_SRTD_SUPG(h, speed, eta, lambda1, mu1, max_srtd_iters, srtd_tol)
     end_solve = time.time()
     solve_time = end_solve - start_solve
 

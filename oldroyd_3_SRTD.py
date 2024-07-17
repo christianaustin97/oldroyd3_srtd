@@ -25,7 +25,6 @@
 from fenics import *
 from meshdata import gen_mesh_jb
 from meshdata import gen_mesh_ldc
-import sys
 import os
 
 class Results:
@@ -41,7 +40,9 @@ class Results:
 
 # Journal Bearing Problem
 
-def oldroyd_3_JB_SRTD(h, rad, ecc, eta, l1, mu1, max_iter, tol):
+def oldroyd_3_JB_SRTD(h, rad, ecc, s, eta, l1, mu1, max_iter, tol):
+    # s is the tangential speed of the bearing 
+
     if(rad>=1 or rad<=0 or ecc<0 or rad+ecc>1):
         #throw exception, forgot how lol
         print("Error: Inputs not valid")
@@ -78,7 +79,7 @@ def oldroyd_3_JB_SRTD(h, rad, ecc, eta, l1, mu1, max_iter, tol):
     
     # Boundary data     
     speed_outer = 0.0 # counter-clockwise tangential speed of outer bearing, 
-    speed_inner = 1.0 # clockwise tangential speed of inner bearing, 
+    speed_inner = s # clockwise tangential speed of inner bearing, 
     g_inner = Expression(("s*(x[1]+ecc)/r", "-s*x[0]/r"), s=speed_inner, r=rad, ecc=ecc, degree=1) 
     g_outer = Expression(("-s*x[1]", "s*x[0]"), s=speed_outer, degree=1) # no slip on outer bearing 
     f = Constant((0.0, 0.0)) # no body forces
@@ -225,7 +226,8 @@ def oldroyd_3_JB_SRTD(h, rad, ecc, eta, l1, mu1, max_iter, tol):
 
 # Lid-Driven Cavity Problem
 
-def oldroyd_3_LDC_SRTD(h, eta, l1, mu1, max_iter, tol):
+def oldroyd_3_LDC_SRTD(h, s, eta, l1, mu1, max_iter, tol):
+    # s is the average velocity of the top lid
 
     meshfile = "meshdata/lid_driven_cavity_h_%.4e.h5"%h
     
@@ -241,7 +243,7 @@ def oldroyd_3_LDC_SRTD(h, eta, l1, mu1, max_iter, tol):
     print("Mesh loaded into FEniCS")
 
     # boundary data
-    g_top = Expression(("30.0*x[0]*x[0]*(1-x[0])*(1-x[0])", "0.0"), degree = 4) # 30x^2(1-x)^2, 30 gives it integral=1
+    g_top = Expression(("s*30.0*x[0]*x[0]*(1-x[0])*(1-x[0])", "0.0"), s=s, degree = 4) # 30x^2(1-x)^2, 30 gives it integral=1
     g_walls = Constant((0.0, 0.0)) #g=0 on walls
 
     # body forces
