@@ -39,7 +39,7 @@ h_array = -1.0*np.array([0, 1, 2, 3, 4])
 h_array = 0.1 * (2 ** h_array)
 
 # For saving the info
-############# CHANGE THIS DIFFERENT METHODS ##############
+############# CHANGE THIS FOR DIFFERENT METHODS ##############
 table_file = open('mesh_ref_ldc_s=%.3e_ucm_l1=%.3e_srtd.csv'%(speed, lambda1), 'w') 
 writer = csv.writer(table_file)
 writer.writerow(['h','elements','$L^{2}$ error $\\vu$','$L^{2}$ rate $\\vu$', '$H^{1}$ error $\\vu$', '$H^{1}$ rate $\\vu$', '$L^{2}$ error $p$', '$L^{2}$ rate $p$','time(s)'])

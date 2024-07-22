@@ -79,7 +79,7 @@ for h in h_array:
     p_prev = interpolate(p_prev, P)
 
     # Start solve
-    ############# CHANGE THIS DIFFERENT METHODS ##############
+    ############# CHANGE THIS FOR DIFFERENT METHODS ##############
     start_solve = time.time()
     solution = oldroyd_3_LDC_SRTD_SUPG(h, speed, eta, lambda1, mu1, max_srtd_iters, srtd_tol)
     end_solve = time.time()
