@@ -15,6 +15,7 @@ from oldroyd_3_SRTD import *
 from oldroyd_3_SRTD_SUPG import *
 
 import os
+import sys
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -22,17 +23,21 @@ from math import log2 as log2 # For computing the rate
 import time # Timing the computations
 import csv # Saving Results
 
-# physical boundary parameter
-speed = 1.0
+# Physical boundary and fluid parameters
+if len(sys.argv) > 1:
+    speed = float(sys.argv[1])
+    eta = float(sys.argv[2])
+    lambda1 = float(sys.argv[3])
+    mu1 = lambda1
+else:
+    # physical default parameters
+    speed = 1.0
+    eta = 1.0
+    lambda1 = 1e-2
+    mu1 = lambda1
 
-# Fluid parameters
-eta = 1.0
-lambda1 = 1e-2
-mu1 = lambda1
-
-# SRTD algorithm parameters
-max_srtd_iters = 20
-srtd_tol = 1e-9
+# Weissenberg number for this problem is Wi = l1*s/H = l1*s, as H=1.0
+Wi = lambda1*speed
 
 # meshsize for mesh refinement experiment
 h_array = -1.0*np.array([0, 1, 2, 3, 4]) 
@@ -40,7 +45,7 @@ h_array = 0.1 * (2 ** h_array)
 
 # For saving the info
 ############# CHANGE THIS DIFFERENT METHODS ##############
-table_file = open('mesh_ref_ldc_s=%.3e_ucm_l1=%.3e_evss.csv'%(speed, lambda1), 'w') 
+table_file = open('results_ldc/mesh_ref_ldc_Wi=%.3e_s=%.3e_ucm_l1=%.3e_evss.csv'%(Wi, speed, lambda1), 'w') 
 writer = csv.writer(table_file)
 writer.writerow(['h','elements','$L^{2}$ error $\\vu$','$L^{2}$ rate $\\vu$', '$H^{1}$ error $\\vu$', '$H^{1}$ rate $\\vu$', '$L^{2}$ error $p$', '$L^{2}$ rate $p$','time(s)'])
 

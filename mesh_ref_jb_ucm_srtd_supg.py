@@ -13,6 +13,7 @@ from oldroyd_3_SRTD import *
 from oldroyd_3_SRTD_SUPG import *
 
 import os
+import sys
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -20,17 +21,25 @@ from math import log2 as log2 # For computing the rate
 import time # Timing the computations
 import csv # Saving Results
 
-# physical boundary parameter
-speed = 1.0
+# Physical boundary and fluid parameters
+if len(sys.argv) > 1:
+    speed = float(sys.argv[1])
+    eta = float(sys.argv[2])
+    lambda1 = float(sys.argv[3])
+    mu1 = lambda1
+else:
+    # physical default parameters
+    speed = 1.0
+    eta = 1.0
+    lambda1 = 1e-2
+    mu1 = lambda1
 
 # geometry parameters
 rad = 0.5
 ecc = 0.25
 
-# Fluid parameters
-eta = 1.0
-lambda1 = 1e-2
-mu1 = lambda1
+# Weissenberg number for this problem is Wi = l1*s/r = 2*l1*s, as r = 0.5
+Wi = 2.0*lambda1*speed
 
 # SRTD algorithm parameters
 max_srtd_iters = 20
@@ -42,7 +51,7 @@ h_array = 0.2 * (2 ** h_array)
 
 # For saving the info
 ############# CHANGE THIS DIFFERENT METHODS ##############
-table_file = open('mesh_ref_jb_s=%.3e_ucm_l1=%.3e_srtd_supg.csv'%(speed, lambda1), 'w') 
+table_file = open('results_jb/mesh_ref_jb_Wi=%.3e_s=%.3e_ucm_l1=%.3e_srtd_supg.csv'%(Wi, speed, lambda1), 'w') 
 writer = csv.writer(table_file)
 writer.writerow(['h','elements','$L^{2}$ error $\\vu$','$L^{2}$ rate $\\vu$', '$H^{1}$ error $\\vu$', '$H^{1}$ rate $\\vu$', '$L^{2}$ error $p$', '$L^{2}$ rate $p$','time(s)'])
 
