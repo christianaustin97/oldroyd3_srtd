@@ -84,9 +84,9 @@ def oldroyd_3_JB_EVSS(h, rad, ecc, s, eta, l1, mu1):
     # Element spaces
     V_elem = VectorElement("CG", triangle, 2) # Velocity, degree 2 elements
     P_elem = FiniteElement("CG", triangle, 1) # Pressure, degree 1 elements
-    T_elem = TensorElement("CG", triangle, 2, symmetry=True) # Stress tensor, degree 2 elements
-    D_elem = TensorElement("CG", triangle, 1, symmetry=True) # Deformation tensor, linear
-    
+    T_elem = TensorElement("CG", triangle, 2, symmetry=True) # "Stress" tensor, degree 2 elements
+    D_elem = VectorElement("CG", triangle, 1) # Deformation tensor, defined as VectorElement to exploit symmetry
+
     W_elem = MixedElement([V_elem, P_elem, T_elem, D_elem]) # Mixed element (u, p, T, D)
     
     # Function Spaces    
@@ -107,8 +107,11 @@ def oldroyd_3_JB_EVSS(h, rad, ecc, s, eta, l1, mu1):
     
     # Variational Problem: Trial and Test Functions
     w = TrialFunction(W) 
-    (u, p, Tau, D) = split(w) #trial/solution functions
-    (v, q, S, Phi) = TestFunctions(W) #test functions
+    (u, p, Tau, D_vec) = split(w) #trial/solution functions
+    (v, q, S, Phi_vec) = TestFunctions(W) #test functions
+
+    D = as_tensor([[D_vec[0], D_vec[1]], [D_vec[1], -D_vec[0]]]) # D is symmetric and traceless
+    Phi = as_tensor([[Phi_vec[0], Phi_vec[1]], [Phi_vec[1], -Phi_vec[0]]])
     
     # Momentum equation gets velocity TFs v
     # EVSS SF: -eta*Lapl(u) + del(u)*u + del(p) - del.Sigma - f = 0
@@ -146,10 +149,11 @@ def oldroyd_3_JB_EVSS(h, rad, ecc, s, eta, l1, mu1):
     prm["newton_solver"]["linear_solver"] = "mumps" # utilizes parallel processors
     solver.solve()
     
-    u1, p1, Sigma, D1 = you.split(deepcopy = True)
-    
+    u1, p1, Sigma, D1_vec = you.split(deepcopy = True)
+    D1 = as_tensor([[D1_vec[0], D1_vec[1]], [D1_vec[1], -D1_vec[0]]]) # Reshape the strain/velocity gradient tensor
+
     #remember, Sigma here is not the stress tensor, but the "modified" tensor Sigma. Return both
-    stress = project( Sigma + 2*eta*D1, W.sub(3).collapse()) #projected onto lower degree space
+    stress = project(Sigma + 2*eta*D1, FunctionSpace(mesh, TensorElement("CG", triangle, 1, symmetry=True))) # project onto deg 1 space
     
     return Results(u1, D1, p1, Sigma, stress)
     
@@ -182,9 +186,9 @@ def oldroyd_3_LDC_EVSS(h, s, eta, l1, mu1):
     # Element spaces
     V_elem = VectorElement("CG", triangle, 2) # Velocity, degree 2 elements
     P_elem = FiniteElement("CG", triangle, 1) # Pressure, degree 1 elements
-    T_elem = TensorElement("CG", triangle, 2, symmetry=True) # Stress tensor, degree 2 elements
-    D_elem = TensorElement("CG", triangle, 1, symmetry=True) # Deformation tensor, linear
-    
+    T_elem = TensorElement("CG", triangle, 2, symmetry=True) # "Stress" tensor, degree 2 elements
+    D_elem = VectorElement("CG", triangle, 1) # Deformation tensor, defined as VectorElement to exploit symmetry
+
     W_elem = MixedElement([V_elem, P_elem, T_elem, D_elem]) # Mixed element (u, p, T, D)
     
     # Function Spaces    
@@ -209,9 +213,11 @@ def oldroyd_3_LDC_EVSS(h, s, eta, l1, mu1):
     
     # Variational Problem: Trial and Test Functions
     w = TrialFunction(W) 
-    (u, p, Tau, D) = split(w) #trial/solution functions
-    (v, q, S, Phi) = TestFunctions(W) #test functions
-    
+    (u, p, Tau, D_vec) = split(w) #trial/solution functions
+    (v, q, S, Phi_vec) = TestFunctions(W) #test functions
+
+    D = as_tensor([[D_vec[0], D_vec[1]], [D_vec[1], -D_vec[0]]]) # D is symmetric and traceless
+    Phi = as_tensor([[Phi_vec[0], Phi_vec[1]], [Phi_vec[1], -Phi_vec[0]]])
     
     # Momentum equation gets velocity TFs v
     # EVSS SF: -eta*Lapl(u) + del(u)*u + del(p) - del.Sigma - f = 0
@@ -248,10 +254,11 @@ def oldroyd_3_LDC_EVSS(h, s, eta, l1, mu1):
     prm["newton_solver"]["linear_solver"] = "mumps" # utilizes parallel processors
     solver.solve()
     
-    u1, p1, Sigma, D1 = you.split(deepcopy = True)
-    
+    u1, p1, Sigma, D1_vec = you.split(deepcopy = True)
+    D1 = as_tensor([[D1_vec[0], D1_vec[1]], [D1_vec[1], -D1_vec[0]]]) # Reshape the strain/velocity gradient tensor
+
     #remember, Sigma here is not the stress tensor, but the "modified" tensor Sigma. Return both
-    stress = project( Sigma + 2*eta*D1, W.sub(3).collapse()) #projected onto lower degree space
+    stress = project(Sigma + 2*eta*D1, FunctionSpace(mesh, TensorElement("CG", triangle, 1, symmetry=True))) # project onto deg 1 space
     
     return Results(u1, D1, p1, Sigma, stress)
 

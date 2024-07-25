@@ -3,7 +3,6 @@ Generates much needed plots for the Oldroyd 3 SRTS paper
 """
 
 from fenics import *
-import matplotlib.tri
 from oldroyd_3_EVSS import *
 from oldroyd_3_SRTD import *
 from oldroyd_3_SRTD_SUPG import *
@@ -135,8 +134,6 @@ plt.axis('square')
 plt.title("Streamlines")
 plt.savefig(solnfile + "_evss_streamlines.pdf", bbox_inches = 'tight')
 plt.close()
-
-
 
 
 
