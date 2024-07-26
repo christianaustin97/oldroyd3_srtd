@@ -9,7 +9,6 @@ from oldroyd_3_SRTD_SUPG import *
 
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
-import matplotlib
 
 # physical boundary parameter
 speed = 1.0
@@ -20,7 +19,7 @@ ecc = 0.25
 
 # Fluid parameters
 eta = 1.0
-lambda1 = 1e-2
+lambda1 = 1e-1
 mu1 = lambda1
 
 # SRTD algorithm parameters
@@ -54,6 +53,10 @@ plt.close()
 solnfile = "plots/ldc_s=%.3e_ucm_l1=%.3e_h=%.4e"%(speed, lambda1, h)
 u_srtd = oldroyd_3_LDC_SRTD(h, speed, eta, lambda1, mu1, max_srtd_iters, srtd_tol)
 u_evss = oldroyd_3_LDC_EVSS(h, speed, eta, lambda1, mu1)
+
+print("##########################################################################")
+print("SRTD iteration residuals:")
+print(u_srtd.residuals)
 
 # SRTD Solution plots
 fig = plot(u_srtd.velocity)
@@ -167,6 +170,10 @@ plt.close()
 solnfile = "plots/jb_s=%.3e_ucm_l1=%.3e_h=%.4e"%(speed, lambda1, h)
 u_srtd = oldroyd_3_JB_SRTD(h, rad, ecc, speed, eta, lambda1, mu1, max_srtd_iters, srtd_tol)
 u_evss = oldroyd_3_JB_EVSS(h, rad, ecc, speed, eta, lambda1, mu1)
+
+print("##########################################################################")
+print("SRTD iteration residuals:")
+print(u_srtd.residuals)
 
 # SRTD Solution plots
 fig = plot(u_srtd.velocity)

@@ -42,7 +42,7 @@ python3 mesh_ref_ldc_ucm_srtd.py 1.0 1.0 4e-2
 python3 mesh_ref_ldc_ucm_srtd_supg.py 1.0 1.0 4e-2
 
 
-#SRT appears to break down around here lol, Wi=0.08. EVSS works fine
+#SRTD appears to break down around here lol, Wi=0.08. EVSS works fine
 # Wi = 8e-2 : s=4, l1=2e-2
 python3 mesh_ref_ldc_ucm_evss.py 4.0 1.0 2e-2
 python3 mesh_ref_ldc_ucm_srtd.py 4.0 1.0 2e-2

@@ -28,14 +28,13 @@ from meshdata import gen_mesh_ldc
 import os
 
 class Results:
-    def __init__(self, converged, velocity, aux_pressure, pressure, stress_tensor, num_iters, rel_error):
+    def __init__(self, converged, velocity, aux_pressure, pressure, stress_tensor, residuals):
         self.converged = converged
         self.velocity = velocity
         self.aux_pressure = aux_pressure
         self.pressure = pressure
         self.stress_tensor = stress_tensor
-        self.num_iters = num_iters
-        self.rel_error = rel_error
+        self.residuals = residuals
 
 
 # Journal Bearing Problem
@@ -93,7 +92,7 @@ def oldroyd_3_JB_SRTD(h, rad, ecc, s, eta, l1, mu1, max_iter, tol):
 
     W = FunctionSpace(mesh, W_elem) # Taylor-Hood/mixed space
     P = FunctionSpace(mesh, P_elem) # true pressure space
-    V = FunctionSpace(mesh, V_elem) # velocity space
+    #V = FunctionSpace(mesh, V_elem) # velocity space (not used)
     T = FunctionSpace(mesh, T_elem) # tensor space
     
     # Interpolate body force and BCs onto velocity FE space
@@ -133,14 +132,23 @@ def oldroyd_3_JB_SRTD(h, rad, ecc, s, eta, l1, mu1, max_iter, tol):
     pi1 = Constant(0.0) #not ever used, just so we're never returning an empty var in the event of failure
     pi1 = interpolate(pi1, W.sub(1).collapse())
     
+    # values to actually be returned
+    u_min = u0
+    pi_min = pi1
+    p_min = p0
+    T_min = T0
+
     #LHS of NS-like solve is same throughout, I think this can exist outside the loop
     a_nse = eta*inner(grad(u), grad(v))*dx + dot( dot(grad(u),u), v)*dx - (pi*div(v))*dx + q*div(u)*dx
     
-    you = Function(W) # uncomment this if you want Newton NSE iter to start from the previous guess (we do)
+    you = Function(W) # uncomment this if you want Newton NSE iter to start from the previous guess (we do, so uncommented)
     
     # Begin SRTD iterative solve
-    n=0; l2diff = 1.0
-    while(n<=max_iter and l2diff > tol):
+    n=1
+    l2diff = 1.0
+    residuals = {} # empty dict to save residual value after each iteration 
+    min_residual = 1.0
+    while(n<=max_iter and min_residual > tol):
         # Stage 1: solve NS type equation for u(n) and pi(n) given u(n-1), p(n-1), and T(n-1)
         #   Test functions:  v and q
         #   Trial functions: u and pi
@@ -173,7 +181,7 @@ def oldroyd_3_JB_SRTD(h, rad, ecc, s, eta, l1, mu1, max_iter, tol):
             solver.solve()
         except: 
             print("Newton Method in the Navier-Stokes-like stage failed to converge")
-            return Results(False, u0, pi1, p0, T0, n, None)
+            return Results(False, u_min, pi_min, p_min, T_min, residuals)
         
         #extract solution parts
         u1, pi1 = you.split(deepcopy=True)
@@ -208,6 +216,14 @@ def oldroyd_3_JB_SRTD(h, rad, ecc, s, eta, l1, mu1, max_iter, tol):
         
         # End of this iteration
         l2diff = errornorm(u1, u0, norm_type='l2')
+        residuals[n] = l2diff
+        if(l2diff <= min_residual):
+            min_residual = l2diff
+            u_min = u1
+            pi_min = pi1
+            p_min = p1
+            T_min = T1
+
         print("SRTD Iteration %d: r = %.4e (tol = %.3e)" % (n, l2diff, tol))
         n = n+1
         
@@ -217,11 +233,11 @@ def oldroyd_3_JB_SRTD(h, rad, ecc, s, eta, l1, mu1, max_iter, tol):
         T0 = T1     
         
     # Stuff to do after the iterations are over
-    if(l2diff <= tol):
+    if(min_residual <= tol):
         converged = True
     else:
         converged = False
-    return Results(converged, u1, pi1, p1, T1, n-1, l2diff)
+    return Results(converged, u_min, pi_min, p_min, T_min, residuals)
 
 
 # Lid-Driven Cavity Problem
@@ -258,7 +274,7 @@ def oldroyd_3_LDC_SRTD(h, s, eta, l1, mu1, max_iter, tol):
 
     W = FunctionSpace(mesh, W_elem) # Taylor-Hood/mixed space
     P = FunctionSpace(mesh, P_elem) # true pressure space
-    V = FunctionSpace(mesh, V_elem) # velocity space
+    #V = FunctionSpace(mesh, V_elem) # velocity space (not used)
     T = FunctionSpace(mesh, T_elem) # tensor space
     
     # Interpolate body force and BCs onto velocity FE space
@@ -302,14 +318,23 @@ def oldroyd_3_LDC_SRTD(h, s, eta, l1, mu1, max_iter, tol):
     pi1 = Constant(0.0) #not ever used, just so we're never returning an empty var in the event of failure
     pi1 = interpolate(pi1, W.sub(1).collapse())
     
+    # values to actually be returned
+    u_min = u0
+    pi_min = pi1
+    p_min = p0
+    T_min = T0
+
     #LHS of NS-like solve is same throughout, I think this can exist outside the loop
     a_nse = eta*inner(grad(u), grad(v))*dx + dot( dot(grad(u),u), v)*dx - (pi*div(v))*dx + q*div(u)*dx
     
     you = Function(W) # uncomment this if you want Newton NSE iter to start from the previous guess 
     
     # Begin SRTD iterative solve
-    n=1; l2diff = 1.0
-    while(n<=max_iter and l2diff > tol):
+    n=1
+    l2diff = 1.0
+    residuals = {} # empty dict to save residual value after each iteration 
+    min_residual = 1.0
+    while(n<=max_iter and min_residual > tol):
         # Stage 1: solve NS type equation for u(n) and pi(n) given u(n-1), p(n-1), and T(n-1)
         # Test functions:  v and q
         # Trial functions: u and pi
@@ -338,7 +363,7 @@ def oldroyd_3_LDC_SRTD(h, s, eta, l1, mu1, max_iter, tol):
             solver.solve()
         except: 
             print("Newton Method in the Navier-Stokes-like stage failed to converge")
-            return Results(False, u0, pi1, p0, T0, n, None)
+            return Results(False, u_min, pi_min, p_min, T_min, residuals)
         
         #extract solution parts
         u1, pi1 = you.split(deepcopy=True)
@@ -373,6 +398,14 @@ def oldroyd_3_LDC_SRTD(h, s, eta, l1, mu1, max_iter, tol):
         
         # End of this iteration
         l2diff = errornorm(u1, u0, norm_type='l2')
+        residuals[n] = l2diff
+        if(l2diff <= min_residual):
+            min_residual = l2diff
+            u_min = u1
+            pi_min = pi1
+            p_min = p1
+            T_min = T1
+
         print("SRTD Iteration %d: r = %.4e (tol = %.3e)" % (n, l2diff, tol))
         n = n+1
         
@@ -382,11 +415,11 @@ def oldroyd_3_LDC_SRTD(h, s, eta, l1, mu1, max_iter, tol):
         T0 = T1     
         
     # Stuff to do after the iterations are over
-    if(l2diff <= tol):
+    if(min_residual <= tol):
         converged = True
     else:
         converged = False
-    return Results(converged, u1, pi1, p1, T1, n-1, l2diff)
+    return Results(converged, u_min, pi_min, p_min, T_min, residuals)
 
      
     
