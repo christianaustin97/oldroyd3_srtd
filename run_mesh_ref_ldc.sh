@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Runs the mesh refinement experiment for various Weissenberg numbers/combinations, JB problem
+
 # First arg is speed s, 2nd arg is viscosity eta0, 3rd arg is relaxation time lambda1
 
 # Wi = 1e-2: s=1.0, l1=1e-2
