@@ -31,24 +31,22 @@ if len(sys.argv) > 1:
     eta = float(sys.argv[2])
     lambda1 = float(sys.argv[3])
     a = float(sys.argv[4])
-
-    mu1 = a*lambda1
-    if a == 1.0:
-        model = 'ucm'
-    elif a == 0.0:
-        model = 'corot'
-    elif a == -1.0:
-        model = 'lcm'
-    else:
-        model = 'mu1=%.3e'%mu1
-
 else:
     # physical default parameters
     speed = 1.0
     eta = 1.0
     lambda1 = 1e-2
-    mu1 = lambda1
+    a = 1.0
+
+mu1 = a*lambda1
+if a == 1.0:
     model = 'ucm'
+elif a == 0.0:
+    model = 'corot'
+elif a == -1.0:
+    model = 'lcm'
+else:
+    model = 'mu1=%.3e'%mu1
 
 # geometry parameters
 rad = 0.5

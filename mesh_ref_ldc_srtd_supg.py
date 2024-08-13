@@ -30,24 +30,22 @@ if len(sys.argv) > 1:
     eta = float(sys.argv[2])
     lambda1 = float(sys.argv[3])
     a = float(sys.argv[4])
-
-    mu1 = a*lambda1
-    if a == 1.0:
-        model = 'ucm'
-    elif a == 0.0:
-        model = 'corot'
-    elif a == -1.0:
-        model = 'lcm'
-    else:
-        model = 'mu1=%.3e'%mu1
-
 else:
     # physical default parameters
     speed = 1.0
     eta = 1.0
     lambda1 = 1e-2
-    mu1 = lambda1
+    a = 1.0
+
+mu1 = a*lambda1
+if a == 1.0:
     model = 'ucm'
+elif a == 0.0:
+    model = 'corot'
+elif a == -1.0:
+    model = 'lcm'
+else:
+    model = 'mu1=%.3e'%mu1
 
 # Weissenberg number for this problem is Wi = l1*s/H = l1*s, as H=1.0
 Wi = lambda1*speed
@@ -62,7 +60,7 @@ h_array = 0.1 * (2 ** h_array)
 
 # For saving the info
 ############# CHANGE THIS FOR DIFFERENT METHODS ##############
-table_file = open('results_jb_' + model + '/mesh_ref_ldc_Wi=%.3e_s=%.3e_l1=%.3e_'%(Wi, speed, lambda1) + model + '_srtd_supg.csv', 'w') 
+table_file = open('results_ldc_' + model + '/mesh_ref_ldc_Wi=%.3e_s=%.3e_l1=%.3e_'%(Wi, speed, lambda1) + model + '_srtd_supg.csv', 'w') 
 writer = csv.writer(table_file)
 writer.writerow(['h','elements','$L^{2}$ error $\\vu$','$L^{2}$ rate $\\vu$', '$H^{1}$ error $\\vu$', '$H^{1}$ rate $\\vu$', '$L^{2}$ error $p$', '$L^{2}$ rate $p$','time(s)'])
 

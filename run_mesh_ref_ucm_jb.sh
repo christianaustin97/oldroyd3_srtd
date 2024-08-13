@@ -2,7 +2,10 @@
 
 # Runs the mesh refinement experiment for various Weissenberg numbers/combinations, JB problem
 
-# First arg is speed s, 2nd arg is viscosity eta0, 3rd arg is relaxation time lambda1
+# First arg is speed s, 2nd arg is viscosity eta0, 3rd arg is relaxation time lambda1, 4th is slip param a
+#   a=1 : ucm
+#   a=0 : corotational maxwell
+#   a=-1: lcm
 
 # Wi = 2e-2: s=1.0, l1=1e-2
 python3 mesh_ref_jb_ucm_evss.py 1.0 1.0 1e-2
