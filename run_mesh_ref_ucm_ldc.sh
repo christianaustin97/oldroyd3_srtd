@@ -7,8 +7,6 @@
 #   a=0 : corotational maxwell
 #   a=-1: lcm
 
-# ACTUALLY WAIT REWRITE THESE WHOLE SCRIPTS SINCE I'LL BE CHANGING THE FUNCTION NAMING CONVENTION LOL
-
 # Wi = 1e-2: s=1.0, l1=1e-2
 python3 mesh_ref_ldc_evss.py 1.0 1.0 1e-2 1.0  
 python3 mesh_ref_ldc_srtd.py 1.0 1.0 1e-2 1.0  
