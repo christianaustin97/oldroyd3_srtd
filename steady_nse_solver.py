@@ -93,6 +93,7 @@ def navier_stokes_ldc(meshsize, eta):
     problem = NonlinearVariationalProblem(F_act, you, bcs, dF)
     solver = NonlinearVariationalSolver(problem)
     try: 
+        #(total_iter, converged) = solver.solve()
         solver.solve()
     except: 
         print("Newton Method in the Navier-Stokes-like stage failed to converge")
