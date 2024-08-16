@@ -7,6 +7,8 @@
 #   a=0 : corotational maxwell
 #   a=-1: lcm
 
+<<comment_flag
+
 # Wi = 1e-2: s=1.0, l1=1e-2
 python3 mesh_ref_ldc_evss.py 1.0 1.0 1e-2 0.0
 python3 mesh_ref_ldc_srtd.py 1.0 1.0 1e-2 0.0
@@ -46,6 +48,7 @@ python3 mesh_ref_ldc_evss.py 1.0 1.0 4e-2 0.0
 python3 mesh_ref_ldc_srtd.py 1.0 1.0 4e-2 0.0
 python3 mesh_ref_ldc_srtd_supg.py 1.0 1.0 4e-2 0.0
 
+comment_flag
 
 #SRTD breaks down around here for UCM, Wi=0.08. EVSS still works okay
 # Wi = 8e-2 : s=4, l1=2e-2
