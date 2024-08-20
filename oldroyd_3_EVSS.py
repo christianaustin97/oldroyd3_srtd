@@ -84,7 +84,7 @@ def oldroyd_3_JB_EVSS(h, rad, ecc, s, eta, l1, mu1):
     # Element spaces
     V_elem = VectorElement("CG", triangle, 2) # Velocity, degree 2 elements
     P_elem = FiniteElement("CG", triangle, 1) # Pressure, degree 1 elements
-    T_elem = TensorElement("CG", triangle, 2, symmetry=True) # "Stress" tensor, degree 2 elements
+    T_elem = TensorElement("CG", triangle, 2, symmetry=True) # "Stress" tensor (actually Sigma), degree 2 elements
     D_elem = VectorElement("CG", triangle, 1) # Deformation tensor, defined as VectorElement to exploit symmetry
 
     W_elem = MixedElement([V_elem, P_elem, T_elem, D_elem]) # Mixed element (u, p, T, D)
@@ -177,7 +177,7 @@ def oldroyd_3_LDC_EVSS(h, s, eta, l1, mu1):
     print("Mesh loaded into FEniCS")
 
     # boundary data
-    g_top = Expression(("s*16.0*x[0]*x[0]*(1-x[0])*(1-x[0])", "0.0"), s=s, degree = 4) # 30x^2(1-x)^2, 30 gives it integral=1
+    g_top = Expression(("s*16.0*x[0]*x[0]*(1-x[0])*(1-x[0])", "0.0"), s=s, degree = 4)
     g_walls = Constant((0.0, 0.0)) #g=0 on walls
 
     # body forces
