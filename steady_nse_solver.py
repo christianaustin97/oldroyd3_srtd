@@ -21,15 +21,7 @@ class Results:
 
 
 def navier_stokes_JB(h, rad, ecc, s, eta):
-    """
-    Solves flow around a journal/plain bearing
-    
-    Here, the larger circle, called the "bearing," will
-    always have radius 1, center/axis (0,0), and the smaller
-    circle, called the "journal," will have radius rad and 
-    center/axis (0, -ecc) 
-    s is the tangential speed of the bearing 
-    """
+    # s is the tangential speed of the bearing 
 
     if(rad>=1 or rad<=0 or ecc<0 or rad+ecc>1):
         #throw exception, forgot how lol
@@ -47,7 +39,6 @@ def navier_stokes_JB(h, rad, ecc, s, eta):
     infile.read(mesh, '/mesh', True) #for some reason, need this flag to import a mesh?
     infile.close()
     print("Mesh loaded into FEniCS")
-
 
     #boundaries of domain
     class Inner(SubDomain):
@@ -131,10 +122,6 @@ def navier_stokes_JB(h, rad, ecc, s, eta):
  
 
 def navier_stokes_LDC(h, s, eta):
-    """
-    solves the Steady NSE for the lid-driven cavity problem
-    s is the average velocity of the top lid 
-    """
     
     meshfile = "meshdata/lid_driven_cavity_h_%.4e.h5"%h
     
@@ -167,18 +154,18 @@ def navier_stokes_LDC(h, s, eta):
     T = FunctionSpace(mesh, T_elem) # tensor space (only used for returning stress)
     
     # Interpolate body force and BCs onto velocity FE space
-    g_top = interpolate(g_top, W.sub(1).collapse())
-    g_walls = interpolate(g_walls, W.sub(1).collapse())
-    f = interpolate(f, W.sub(1).collapse())
+    g_top = interpolate(g_top, W.sub(0).collapse())
+    g_walls = interpolate(g_walls, W.sub(0).collapse())
+    f = interpolate(f, W.sub(0).collapse())
     
     # Define boundary conditions
     lid    = 'near(x[1], 1.0) && on_boundary'
     walls  = '(near(x[1], 0.0) || near(x[0], 0.0) || near(x[0], 1.0)) && on_boundary'
     corner = 'near(x[0], 0.0) && near(x[1], 0.0)' # for pressure regulating
     
-    bc_top   = DirichletBC(W.sub(1), g_top, lid) # driving lid
-    bc_walls = DirichletBC(W.sub(1), g_walls, walls) # no slip
-    bc_press = DirichletBC(W.sub(0), Constant(0.0), corner, 'pointwise') # pressure regulating
+    bc_top   = DirichletBC(W.sub(0), g_top, lid) # driving lid
+    bc_walls = DirichletBC(W.sub(0), g_walls, walls) # no slip
+    bc_press = DirichletBC(W.sub(1), Constant(0.0), corner, 'pointwise') # pressure regulating
     
     # Gather boundary conditions (any others would go here, separated by a comma)
     bcs = [bc_top, bc_walls, bc_press] #possibly get rid of pressure regulator if it breaks something in NN solve
@@ -216,10 +203,8 @@ def navier_stokes_LDC(h, s, eta):
     print(norm(stress_tensor, 'l2'))
     
     return Results(converged, u_soln, p_soln, stress_tensor, iters)
-    
 
-   
-    
+
 # Post-processing/new function stuff here
     
   
