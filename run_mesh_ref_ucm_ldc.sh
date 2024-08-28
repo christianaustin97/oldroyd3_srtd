@@ -68,16 +68,26 @@ python3 mesh_ref_ldc_srtd_supg.py 8.0 1.0 1e-2 1.0
 
 # Wi = 1.6e-1 : s=2, l1=8e-2
 python3 mesh_ref_ldc_evss.py 2.0 1.0 8e-2 1.0  
+python3 mesh_ref_ldc_srtd.py 2.0 1.0 8e-2 1.0  
+python3 mesh_ref_ldc_srtd_supg.py 2.0 1.0 8e-2 1.0  
 # Wi = 1.6e-1 : s=4, l1=4e-2
 python3 mesh_ref_ldc_evss.py 4.0 1.0 4e-2 1.0  
+python3 mesh_ref_ldc_srtd.py 4.0 1.0 4e-2 1.0  
+python3 mesh_ref_ldc_srtd_supg.py 4.0 1.0 4e-2 1.0  
 # Wi = 1.6e-1 : s=8, l1=2e-2
 python3 mesh_ref_ldc_evss.py 8.0 1.0 2e-2 1.0  
+python3 mesh_ref_ldc_srtd.py 8.0 1.0 2e-2 1.0  
+python3 mesh_ref_ldc_srtd_supg.py 8.0 1.0 2e-2 1.0  
 
 
 # Wi = 3.2e-1 : s=4, l1=8e-2
 python3 mesh_ref_ldc_evss.py 4.0 1.0 8e-2 1.0
+python3 mesh_ref_ldc_srtd.py 4.0 1.0 8e-2 1.0
+python3 mesh_ref_ldc_srtd_supg.py 4.0 1.0 8e-2 1.0
 # Wi = 3.2e-1 : s=8, l1=4e-2
 python3 mesh_ref_ldc_evss.py 8.0 1.0 4e-2 1.0
+python3 mesh_ref_ldc_srtd.py 8.0 1.0 4e-2 1.0
+python3 mesh_ref_ldc_srtd_supg.py 8.0 1.0 4e-2 1.0
 
 # Wi = 6.4e-1 : s=4, l1=1.6e-1
 python3 mesh_ref_ldc_evss.py 4.0 1.0 1.6e-1 1.0
@@ -85,8 +95,3 @@ python3 mesh_ref_ldc_evss.py 4.0 1.0 1.6e-1 1.0
 python3 mesh_ref_ldc_evss.py 8.0 1.0 8e-2 1.0
 # Wi = 6.4e-1 : s=16, l1=4e-2
 python3 mesh_ref_ldc_evss.py 16.0 1.0 4e-2 1.0
-
-# Wi = 1.28 : s=8, l1=1.6e-1
-python3 mesh_ref_ldc_evss.py 8.0 1.0 1.6e-1 1.0
-# Wi = 1.28 : s=16, l1=8e-2
-python3 mesh_ref_ldc_evss.py 16.0 1.0 8e-2 1.0
