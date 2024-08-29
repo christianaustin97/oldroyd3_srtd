@@ -40,6 +40,7 @@ h = 0.025
 
 # characteristic speeds
 s = 1.0
+eta = 1.0
 
 # Differing l1 values to compare to NSE
 coeffs = np.arange(1,10,2) # 1,3,5,7,9
@@ -52,4 +53,14 @@ ldc_h1_differences = np.zeros(len(l1vals))
 bearing_l2_differences = np.zeros(len(l1vals))
 bearing_h1_differences = np.zeros(len(l1vals))
 
+for l1 in l1vals:
+    mu1 = l1
+
+    o3_ldc_soln = oldroyd_3_LDC_SRTD(h, s, eta, l1, mu1, max_srtd_iters, srtd_tol)
+    nse_ldc_soln = navier_stokes_LDC(h, s, eta)
+
+    o3_jb_soln = oldroyd_3_JB_SRTD(h, rad, ecc, s, eta, l1, mu1, max_srtd_iters, srtd_tol)
+    nse_jb_soln = navier_stokes_JB(h, rad, ecc, s, eta)
+
+# post loop plotting here
 
