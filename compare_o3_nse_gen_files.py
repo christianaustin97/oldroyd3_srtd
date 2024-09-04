@@ -94,7 +94,7 @@ for i in range(len(l1vals)):
     jb_h1_differences[i] = jb_h1_diff
     jb_l2_p_differences[i] = jb_l2_p_diff
 
-    ucm_jb_writer.writerow(['%.3e'%h, '%.3e'%rad, '%.3e'%ecc, '%.3e'%eta, '%.3e'%l1, '%.3e'%ldc_l2_diff, '%.3e'%ldc_h1_diff, '%.3e'%ldc_l2_p_diff])
+    ucm_jb_writer.writerow(['%.3e'%h, '%.3e'%rad, '%.3e'%ecc, '%.3e'%eta, '%.3e'%l1, '%.3e'%jb_l2_diff, '%.3e'%jb_h1_diff, '%.3e'%jb_l2_p_diff])
 
 ucm_ldc_outfile.close()
 ucm_jb_outfile.close()

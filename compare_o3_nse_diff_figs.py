@@ -56,15 +56,15 @@ x_diff, y_diff = ldc_diff.split(deepcopy= True)
 
 
 p_x_diff = plot(x_diff)
-plt.title("Horizontal component of the Difference")
+#plt.title("Horizontal component of the Difference")
 plt.colorbar(p_x_diff)
-plt.savefig("results_compare_ldc/x_comp_ucm_nse_ldc.svg")
+plt.savefig("results_compare_ldc/x_comp_ucm_nse_ldc.pdf")
 plt.close()
 
 p_mag_diff = plot(magnitude_diff)
-plt.title("Magnitude of the Difference")
+#plt.title("Magnitude of the Difference")
 plt.colorbar(p_mag_diff)
-plt.savefig("results_compare_ldc/magnitude_ucm_nse_ldc.svg")
+plt.savefig("results_compare_ldc/magnitude_ucm_nse_ldc.pdf")
 plt.close()
 
 
@@ -107,9 +107,9 @@ jb_magnitude_diff = dot(jb_diff, jb_diff)
 jb_x_diff, jb_y_diff = jb_diff.split(deepcopy= True)
 
 p_mag_diff = plot(jb_magnitude_diff)
-plt.title("Magnitude of the Difference")
+#plt.title("Magnitude of the Difference")
 plt.colorbar(p_mag_diff)
-plt.savefig("results_compare_jb/magnitude_ucm_nse_jb.svg")
+plt.savefig("results_compare_jb/magnitude_ucm_nse_jb.pdf")
 plt.close()
 
 
@@ -131,9 +131,9 @@ u_theta.vector().set_local(u_theta_vector)
 
 
 fig = plot(u_theta)
-plt.title("Azimuthal component of the difference")
+#plt.title("Azimuthal component of the difference")
 plt.colorbar(fig, label = "magnitude")
-plt.savefig("results_compare_jb/azimuthal_ucm_nse_jb.svg")
+plt.savefig("results_compare_jb/azimuthal_ucm_nse_jb.pdf")
 plt.close()
 
 
