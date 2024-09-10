@@ -18,8 +18,8 @@
     
     This file contains built-in functions for solving the 
     lid-driven cavity (ldc) problem and the journal-bearing (jb)
-    problem, as their analysis requires tangential Dirichlet 
-    boundary conditions. Hopefully more geometries to come soon. 
+    problem, as the analysis of the method assumes tangential
+    Dirichlet boundary conditions. Hopefully more geometries to come soon. 
 """
 
 from fenics import *
