@@ -33,8 +33,8 @@ speed=1.0
 
 eta = 1.0
 
-coeffs = np.array([0.5, 1.0])
-bases = 10.0**np.array([-5, -4, -3, -2, -1])
+coeffs = np.array([0.25, 0.5, 0.75, 1.0])
+bases = 10.0**np.array([-5, -4, -3, -2, -1, 0])
 l1vals = np.array([coeffs*b for b in bases]).ravel() # opposite of unravel i guess lol. combines into 1d array
 
 # geometry parameters for jb
@@ -49,7 +49,7 @@ srtd_tol = 0.0 # keep going, want to see how it behaves in the long term
 # tolerances to check, 1e-1, 1e-3, ..., 1e-9
 tols = 10.0**np.array([-1, -2, -3, -4, -5, -6, -7, -8, -9])
 
-# Journal-bearing problem first I guess
+# Journal-bearing problem first I guess. Record number of iters required to reach each tol
 for l1 in l1vals:
 
     lambda1 = float(l1)
@@ -105,6 +105,7 @@ ldc_residuals_file = open('results_num_iters/ldc_residuals.csv', 'w')
 ldc_residuals_writer = csv.writer(ldc_residuals_file)
 ldc_residuals_writer.writerow(["l1", "tol_at_iter"])
 
+# ldc problem next. Record number of iters required to reach each tol
 for l1 in l1vals:
     
     lambda1 = float(l1)
@@ -126,6 +127,7 @@ for l1 in l1vals:
             out_row[i+1] = " - " # otherwise, just put a dash
     
     ldc_writer.writerow(out_row)
+    ldc_residuals_writer.writerow(np.concatenate([[l1], residuals]))
 
     # plot residuals
     plt.semilogy(iterations, residuals)
