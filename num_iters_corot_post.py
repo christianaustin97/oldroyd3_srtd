@@ -14,12 +14,13 @@ jb_plot_data = [[float(i) for i in row[1:]] for row in jb_data[16:21]] # the one
 for i in range(4, -1, -1):
     plt.semilogy(range(1, len(jb_plot_data[i])+1), jb_plot_data[i], label='$\lambda_{1}$=%.3f'%l1_vals[i])
 
-plt.xticks(range(1, 26))
-plt.xlabel("SRTD Iteration")
-plt.ylabel("Residual")
-#plt.legend(loc=4)
-plt.legend()
-plt.savefig("results_num_iters_corot/jb_corot_num_iters_comparison.pdf")
+fsize = 15
+plt.xticks(range(1, 26, 3), fontsize=fsize-2)
+plt.yticks(fontsize=fsize-2)
+plt.xlabel("SRTD Iteration", fontsize=fsize)
+plt.ylabel("Residual", fontsize=fsize)
+plt.legend(loc=4, fontsize=fsize-4)
+plt.savefig("results_num_iters_corot/jb_corot_num_iters_comparison.pdf", bbox_inches='tight')
 plt.show()
 
 
@@ -37,10 +38,11 @@ ldc_plot_data = [[float(i) for i in row[1:]] for row in ldc_data[16:21]] # the o
 for i in range(4, -1, -1):
     plt.semilogy(range(1, len(ldc_plot_data[i])+1), ldc_plot_data[i], label='$\lambda_{1}$=%.3f'%l1_vals[i])
 
-plt.xticks(range(1, 26))
-plt.xlabel("SRTD Iteration")
-plt.ylabel("Residual")
-#plt.legend(loc=4)
-plt.legend()
-plt.savefig("results_num_iters_corot/ldc_corot_num_iters_comparison.pdf")
+fsize = 15
+plt.xticks(range(1, 26, 3), fontsize=fsize-2)
+plt.yticks(fontsize=fsize-2)
+plt.xlabel("SRTD Iteration", fontsize=fsize)
+plt.ylabel("Residual", fontsize=fsize)
+plt.legend(loc=4, fontsize=fsize-4)
+plt.savefig("results_num_iters_corot/ldc_corot_num_iters_comparison.pdf", bbox_inches='tight')
 plt.show()
