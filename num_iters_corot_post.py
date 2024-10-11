@@ -2,7 +2,7 @@ import csv
 import matplotlib.pyplot as plt
 
 
-with open('results_num_iters/jb_residuals.csv', newline='') as jb_csv:
+with open('results_num_iters_corot/jb_residuals.csv', newline='') as jb_csv:
     jb_data = list(csv.reader(jb_csv))
 
 l1_vals = [float(row[0]) for row in jb_data[16:21]] # just l1 values/first entry in each row
@@ -17,14 +17,15 @@ for i in range(4, -1, -1):
 plt.xticks(range(1, 26))
 plt.xlabel("SRTD Iteration")
 plt.ylabel("Residual")
-plt.legend(loc=4)
-plt.savefig("results_num_iters/jb_ucm_num_iters_comparison.pdf")
+#plt.legend(loc=4)
+plt.legend()
+plt.savefig("results_num_iters_corot/jb_corot_num_iters_comparison.pdf")
 plt.show()
 
 
 
 
-with open('results_num_iters/ldc_residuals.csv', newline='') as ldc_csv:
+with open('results_num_iters_corot/ldc_residuals.csv', newline='') as ldc_csv:
     ldc_data = list(csv.reader(ldc_csv))
 
 l1_vals = [float(row[0]) for row in ldc_data[16:21]] # just l1 values/first entry in each row
@@ -39,6 +40,7 @@ for i in range(4, -1, -1):
 plt.xticks(range(1, 26))
 plt.xlabel("SRTD Iteration")
 plt.ylabel("Residual")
-plt.legend(loc=4)
-plt.savefig("results_num_iters/ldc_ucm_num_iters_comparison.pdf")
+#plt.legend(loc=4)
+plt.legend()
+plt.savefig("results_num_iters_corot/ldc_corot_num_iters_comparison.pdf")
 plt.show()

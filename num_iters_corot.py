@@ -1,7 +1,7 @@
 """
 Generates some plots and tables for number of SRTD iters it takes to get to 
 different tolerance values/residual values/difference between consecutive iterates
-for the UCM model
+for the corotational Maxwell model
 """
 
 from fenics import *
@@ -17,11 +17,11 @@ import time # Timing the computations
 import csv # Saving Results
 
 
-jb_file = open('results_num_iters/jb_num_iters.csv', 'w') 
+jb_file = open('results_num_iters_corot/jb_num_iters.csv', 'w') 
 jb_writer = csv.writer(jb_file)
 jb_writer.writerow(["l1", "1-e1", "1e-2", "1e-3", "1e-4", "1e-5", "1e-6", "1e-7", "1e-8", "1e-9"])
 
-jb_residuals_file = open('results_num_iters/jb_residuals.csv', 'w') 
+jb_residuals_file = open('results_num_iters_corot/jb_residuals.csv', 'w') 
 jb_residuals_writer = csv.writer(jb_residuals_file)
 jb_residuals_writer.writerow(["l1", "tol_at_iter"])
 
@@ -55,7 +55,7 @@ for l1 in l1vals:
 
     lambda1 = float(l1)
     out_row = ['%.3e'%lambda1] + ['']*9
-    mu1 = lambda1
+    mu1 = 0.0
 
     solution = oldroyd_3_JB_SRTD(h_jb, rad, ecc, speed, eta, lambda1, mu1, max_srtd_iters, srtd_tol)
 
@@ -79,7 +79,7 @@ for l1 in l1vals:
     plt.xticks(range(1, max_srtd_iters+1))
     plt.xlabel("SRTD Iteration")
     plt.ylabel("Residual")
-    plt.savefig("results_num_iters/jb_l1_%.3e_all_20.pdf"%lambda1)
+    plt.savefig("results_num_iters_corot/jb_l1_%.3e_all_20.pdf"%lambda1)
     plt.close()
 
     # plot residuals
@@ -87,7 +87,7 @@ for l1 in l1vals:
     plt.xticks(iterations)
     plt.xlabel("SRTD Iteration")
     plt.ylabel("Residual")
-    plt.savefig("results_num_iters/jb_l1_%.3e.pdf"%lambda1)
+    plt.savefig("results_num_iters_corot/jb_l1_%.3e.pdf"%lambda1)
     plt.close()
 
 jb_file.close()
@@ -98,11 +98,11 @@ jb_residuals_file.close()
 
 
 # LDC problem next
-ldc_file = open('results_num_iters/ldc_num_iters.csv', 'w') 
+ldc_file = open('results_num_iters_corot/ldc_num_iters.csv', 'w') 
 ldc_writer = csv.writer(ldc_file)
 ldc_writer.writerow(["l1", "1-e1", "1e-2", "1e-3", "1e-4", "1e-5", "1e-6", "1e-7", "1e-8", "1e-9"])
 
-ldc_residuals_file = open('results_num_iters/ldc_residuals.csv', 'w') 
+ldc_residuals_file = open('results_num_iters_corot/ldc_residuals.csv', 'w') 
 ldc_residuals_writer = csv.writer(ldc_residuals_file)
 ldc_residuals_writer.writerow(["l1", "tol_at_iter"])
 
@@ -111,7 +111,7 @@ for l1 in l1vals:
     
     lambda1 = float(l1)
     out_row = ['%.3e'%lambda1] + ['']*9
-    mu1 = lambda1
+    mu1 = 0.0
 
     solution_ldc = oldroyd_3_LDC_SRTD(h_ldc, speed, eta, lambda1, mu1, max_srtd_iters, srtd_tol)
 
@@ -135,7 +135,7 @@ for l1 in l1vals:
     plt.xticks(range(1, max_srtd_iters+1))
     plt.xlabel("SRTD Iteration")
     plt.ylabel("Residual")
-    plt.savefig("results_num_iters/ldc_l1_%.3e_all_20.pdf"%lambda1)
+    plt.savefig("results_num_iters_corot/ldc_l1_%.3e_all_20.pdf"%lambda1)
     plt.close()
 
     # plot residuals
@@ -143,7 +143,7 @@ for l1 in l1vals:
     plt.xticks(iterations)
     plt.xlabel("SRTD Iteration")
     plt.ylabel("Residual")
-    plt.savefig("results_num_iters/ldc_l1_%.3e.pdf"%lambda1)
+    plt.savefig("results_num_iters_corot/ldc_l1_%.3e.pdf"%lambda1)
     plt.close()
 
 ldc_file.close()
