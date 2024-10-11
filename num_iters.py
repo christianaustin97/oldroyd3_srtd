@@ -19,7 +19,7 @@ import csv # Saving Results
 
 jb_file = open('results_num_iters/jb_num_iters.csv', 'w') 
 jb_writer = csv.writer(jb_file)
-jb_writer.writerow(["l1", "1-e1", "1e-2", "1e-3", "1e-4", "1e-5", "1e-6", "1e-7", "1e-8", "1e-9"])
+jb_writer.writerow(["l1", "1e-1", "1e-2", "1e-3", "1e-4", "1e-5", "1e-6", "1e-7", "1e-8", "1e-9"])
 
 jb_residuals_file = open('results_num_iters/jb_residuals.csv', 'w') 
 jb_residuals_writer = csv.writer(jb_residuals_file)
