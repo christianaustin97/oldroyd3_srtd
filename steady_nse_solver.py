@@ -22,6 +22,7 @@ class Results:
 
 def navier_stokes_JB(h, rad, ecc, s, eta):
     # s is the tangential speed of the bearing 
+    #print("NSE JB Solver called with h=%.5f"%h)
 
     if(rad>=1 or rad<=0 or ecc<0 or rad+ecc>1):
         #throw exception, forgot how lol
@@ -106,7 +107,7 @@ def navier_stokes_JB(h, rad, ecc, s, eta):
     try: 
         (iters, converged) = solver.solve()
     except: 
-        print("Newton Method in the Navier-Stokes-like stage failed to converge")
+        print("Newton Method for Navier-Stokes failed to converge")
         return Results(False, None, None, None, 0)
     
     # Likewise, not sure which is preferred
@@ -115,8 +116,8 @@ def navier_stokes_JB(h, rad, ecc, s, eta):
     #also return stress tensor value, for reference
     stress_tensor = project( 2*eta*(sym(grad(u_soln))) , T)
     
-    print("L2 norm of stress tensor:")
-    print(norm(stress_tensor, 'l2'))
+    #print("L2 norm of stress tensor:")
+    #print(norm(stress_tensor, 'l2'))
     
     return Results(converged, u_soln, p_soln, stress_tensor, iters)
  
@@ -190,7 +191,7 @@ def navier_stokes_LDC(h, s, eta):
     try: 
         (iters, converged) = solver.solve()
     except: 
-        print("Newton Method in the Navier-Stokes-like stage failed to converge")
+        print("Newton Method for Navier-Stokes failed to converge")
         return Results(False, None, None, None, 0)
     
     # Likewise, not sure which is preferred
@@ -199,8 +200,8 @@ def navier_stokes_LDC(h, s, eta):
     #also return stress tensor value, for reference
     stress_tensor = project( 2*eta*(sym(grad(u_soln))) , T)
     
-    print("L2 norm of stress tensor:")
-    print(norm(stress_tensor, 'l2'))
+    #print("L2 norm of stress tensor:")
+    #print(norm(stress_tensor, 'l2'))
     
     return Results(converged, u_soln, p_soln, stress_tensor, iters)
 

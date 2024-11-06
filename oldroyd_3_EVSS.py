@@ -24,15 +24,19 @@ applied to the O3 Model, and we do exactly that here.
 from fenics import *
 from meshdata import gen_mesh_jb
 from meshdata import gen_mesh_ldc
+import steady_nse_solver
 import os
+import matplotlib.pyplot as plt
 
 class Results:
-    def __init__(self, velocity, deformation, pressure, Sigma, stress_tensor):
+    def __init__(self, converged, velocity, deformation, pressure, Sigma, stress_tensor, num_iters):
+        self.converged = converged
         self.velocity = velocity
         self.deformation = deformation
         self.pressure = pressure
         self.Sigma = Sigma
         self.stress_tensor = stress_tensor
+        self.num_iters = num_iters
 
 # Deformation d is treated as a separate variable to account for the extra derivative introduced
 
@@ -89,8 +93,12 @@ def oldroyd_3_JB_EVSS(h, rad, ecc, s, eta, l1, mu1):
 
     W_elem = MixedElement([V_elem, P_elem, T_elem, D_elem]) # Mixed element (u, p, T, D)
     
-    # Function Spaces    
-    W = FunctionSpace(mesh, W_elem) # Only need one, the mixed Function Space
+    # Function Spaces
+    V_space = FunctionSpace(mesh, V_elem) # need these first 4 for FunctionAssigner
+    P_space = FunctionSpace(mesh, P_elem)
+    T_space = FunctionSpace(mesh, T_elem)
+    D_space = FunctionSpace(mesh, D_elem)
+    W = FunctionSpace(mesh, W_elem) # Only need one really, the mixed Function Space
     
     # Interpolate body force and BCs onto velocity FE space
     g_inner = interpolate(g_inner, W.sub(0).collapse())
@@ -123,7 +131,6 @@ def oldroyd_3_JB_EVSS(h, rad, ecc, s, eta, l1, mu1):
     
     # Constitutive equation gets degree 2 tensor TFs and SUPG (S + h*del(S)*u)
     # CE SF: T + l1*G(T + 2etaE, a) = 0
-    h = mesh.hmax()/4
     constitutive = inner( Tau + l1*(dot(grad(Tau+2*eta*D), u) - dot(grad(u), Tau+2*eta*D) - dot(Tau+2*eta*D, grad(u).T)) \
                          +(l1-mu1)*(dot( (grad(u)+grad(u).T)/2, Tau+2*eta*D) + dot(Tau+2*eta*D,(1/2)*(grad(u)+grad(u).T))),\
                          S + h*dot(grad(S), u) )*dx
@@ -136,8 +143,20 @@ def oldroyd_3_JB_EVSS(h, rad, ecc, s, eta, l1, mu1):
     F = momentum + continuity + constitutive + enforcement
     
     # Solve discrete variational form
-    you = Function(W)
+    you = Function(W) #starting guess for Newton
+
+    #get NSE as starting guess for Newton
+    nse_solution = steady_nse_solver.navier_stokes_JB(h, rad, ecc, s, eta) 
+    u_nse = interpolate(nse_solution.velocity, V_space)
+    p_nse = interpolate(nse_solution.pressure, P_space)
+    D_nse = interpolate(Constant((0.0, 0.0)), D_space)
+    Sigma_nse = interpolate( Constant( ((0.0, 0.0), (0.0, 0.0)) ), T_space)
+    print("NSE Solver done")
+
+    assigner = FunctionAssigner(W, [V_space, P_space, T_space, D_space])
+    assigner.assign(you, [u_nse, p_nse, Sigma_nse, D_nse])
     
+    # Now onto EVSS Solve
     F_act = action(F, you) 
     dF = derivative(F_act, you)
 
@@ -147,7 +166,13 @@ def oldroyd_3_JB_EVSS(h, rad, ecc, s, eta, l1, mu1):
     prm = solver.parameters
     prm["nonlinear_solver"] = "newton"
     prm["newton_solver"]["linear_solver"] = "mumps" # utilizes parallel processors
-    solver.solve()
+    
+    try:
+        (iters, converged) = solver.solve()
+    except:
+        print("Newton Solver failed to converge")
+        converged = False
+        iters = -1
     
     u1, p1, Sigma, D1_vec = you.split(deepcopy = True)
     D1 = as_tensor([[D1_vec[0], D1_vec[1]], [D1_vec[1], -D1_vec[0]]]) # Reshape the strain/velocity gradient tensor
@@ -155,7 +180,7 @@ def oldroyd_3_JB_EVSS(h, rad, ecc, s, eta, l1, mu1):
     #remember, Sigma here is not the stress tensor, but the "modified" tensor Sigma. Return both
     stress = project(Sigma + 2*eta*D1, FunctionSpace(mesh, TensorElement("CG", triangle, 1, symmetry=True))) # project onto deg 1 space
     
-    return Results(u1, D1, p1, Sigma, stress)
+    return Results(converged, u1, D1, p1, Sigma, stress, iters)
     
     
 # Lid-Driven Cavity Problem
@@ -191,7 +216,11 @@ def oldroyd_3_LDC_EVSS(h, s, eta, l1, mu1):
 
     W_elem = MixedElement([V_elem, P_elem, T_elem, D_elem]) # Mixed element (u, p, T, D)
     
-    # Function Spaces    
+    # Function Spaces
+    V_space = FunctionSpace(mesh, V_elem) # need these first 4 for FunctionAssigner
+    P_space = FunctionSpace(mesh, P_elem)
+    T_space = FunctionSpace(mesh, T_elem)
+    D_space = FunctionSpace(mesh, D_elem)
     W = FunctionSpace(mesh, W_elem) # Only need one, the mixed Function Space
     
     # Interpolate body force and BCs onto velocity FE space
@@ -229,7 +258,6 @@ def oldroyd_3_LDC_EVSS(h, s, eta, l1, mu1):
     
     # Constitutive equation gets degree 2 tensor TFs and SUPG (S + h*del(S)*u)
     # CE SF: T + l1*G(T + 2etaE, a) = 0
-    h = mesh.hmax()/4
     constitutive = inner( Tau + l1*(dot(grad(Tau+2*eta*D), u) - dot(grad(u), Tau+2*eta*D) - dot(Tau+2*eta*D, grad(u).T)) \
                          +(l1-mu1)*(dot( (grad(u)+grad(u).T)/2, Tau+2*eta*D) + dot(Tau+2*eta*D,(1/2)*(grad(u)+grad(u).T))),\
                          S + h*dot(grad(S), u) )*dx
@@ -241,7 +269,18 @@ def oldroyd_3_LDC_EVSS(h, s, eta, l1, mu1):
     F = momentum + continuity + constitutive + enforcement
     
     # Solve discrete variational form
-    you = Function(W)
+    you = Function(W) #starting guess for Newton
+
+    #get NSE as starting guess for Newton
+    nse_solution = steady_nse_solver.navier_stokes_LDC(h, s, eta) 
+    u_nse = interpolate(nse_solution.velocity, V_space)
+    p_nse = interpolate(nse_solution.pressure, P_space)
+    D_nse = interpolate(Constant((0.0, 0.0)), D_space)
+    Sigma_nse = interpolate( Constant( ((0.0, 0.0), (0.0, 0.0)) ), T_space)
+    print("NSE Solver done")
+
+    assigner = FunctionAssigner(W, [V_space, P_space, T_space, D_space])
+    assigner.assign(you, [u_nse, p_nse, Sigma_nse, D_nse])
     
     F_act = action(F, you) 
     dF = derivative(F_act, you)
@@ -252,7 +291,12 @@ def oldroyd_3_LDC_EVSS(h, s, eta, l1, mu1):
     prm = solver.parameters
     prm["nonlinear_solver"] = "newton"
     prm["newton_solver"]["linear_solver"] = "mumps" # utilizes parallel processors
-    solver.solve()
+    try:
+        (iters, converged) = solver.solve()
+    except:
+        print("Newton Solver failed to converge")
+        converged = False
+        iters = -1
     
     u1, p1, Sigma, D1_vec = you.split(deepcopy = True)
     D1 = as_tensor([[D1_vec[0], D1_vec[1]], [D1_vec[1], -D1_vec[0]]]) # Reshape the strain/velocity gradient tensor
@@ -260,7 +304,8 @@ def oldroyd_3_LDC_EVSS(h, s, eta, l1, mu1):
     #remember, Sigma here is not the stress tensor, but the "modified" tensor Sigma. Return both
     stress = project(Sigma + 2*eta*D1, FunctionSpace(mesh, TensorElement("CG", triangle, 1, symmetry=True))) # project onto deg 1 space
     
-    return Results(u1, D1, p1, Sigma, stress)
+    return Results(converged, u1, D1, p1, Sigma, stress, iters)
+    
 
 #post proc stuff here
 
