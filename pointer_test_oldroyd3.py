@@ -228,8 +228,6 @@ def oldroyd_3_JB_SRTD(h, rad, ecc, s, eta, l1, mu1, max_iter, tol):
     
 
 
-    
-
 # LDC Problem
 
 def oldroyd_3_LDC_SRTD(h, s, eta, l1, mu1, max_iter, tol):

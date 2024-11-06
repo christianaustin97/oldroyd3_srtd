@@ -38,11 +38,11 @@ pointer_time = end_solve_pointer - start_solve_pointer
 
 
 print("diff between 2 solves:")
-print("%0.5e"%errornorm(pointer_soln.velocity, original_soln.velocity, 'l2', degree_rise=0))
+print("%0.5e"%errornorm(pointer_soln.velocity, original_soln.velocity, 'l2', degree_rise=4))
 
-plt.semilogy(list(original_soln.residuals.keys())[1:], list(original_soln.residuals.values())[1:])
-plt.show()
-plt.semilogy(list(pointer_soln.residuals.keys())[1:], list(pointer_soln.residuals.values())[1:])
+plt.semilogy(list(original_soln.residuals.keys())[1:], list(original_soln.residuals.values())[1:], label = "original FEniCS")
+plt.semilogy(list(pointer_soln.residuals.keys())[1:], list(pointer_soln.residuals.values())[1:], label = "clever pointer trick")
+plt.legend()
 plt.show()
 
 
