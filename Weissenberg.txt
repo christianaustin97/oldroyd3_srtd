@@ -1,6 +1,16 @@
 Weissenberg Number for JB is Wi = 2*U*l1
 Weissenberg number for LDC is Wi = U*l1
 
+The following results were obtained on a mesh with characteristic meshsize 
+h=0.05 for the JB problem
+h=0.025 for the LDC problem
+
+We confirmed results by halving the meshsize and running one Wi limit search
+with U=1. Results generally agreed 
+
+
+UCM
+
 SRTD on the JB is capable of reaching Wi approx 0.1 (e.g. U=0.5, l1 = 0.1)
 SRTD on the LDC is capable of reaching Wi approx 0.05 (e.g. U=0.5, l1 = 0.1)
     - roughly, the same U and l1 combination on both problems, SRTD can reach
@@ -8,3 +18,12 @@ SRTD on the LDC is capable of reaching Wi approx 0.05 (e.g. U=0.5, l1 = 0.1)
 EVSS on the JB is capable of reaching Wi approx 2.0 (e.g. U=1.0, l1 = 1.0)
 EVSS on the LDC is capable of reaching Wi approx 0.45 (e.g. U=0.5, l1 = 0.9)
     - roughly, EVSS can reach twice a parameter value for the JB than it can for LDC
+
+
+Corotational Maxwell
+
+SRTD on the JB is capable of reaching Wi approx 0.11 (U=1.0, l1=0.052)
+SRTD on the LDC is capable of reaching Wi approx 0.062 (U=1.0, l1=0.062)
+
+EVSS on the JB is capable of reaching Wi approx 0.2 (e.g. U=1.0, l1=0.1)
+EVSS on the LDC is capable of reaching Wi approx 0.1 (e.g. U=1.0, l1=0.1)
