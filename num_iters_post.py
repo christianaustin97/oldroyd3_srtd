@@ -12,7 +12,7 @@ jb_plot_data = [[float(i) for i in row[1:]] for row in jb_data[16:21]] # the one
 #print(jb_plot_data[0])
 
 for i in range(4, -1, -1):
-    plt.semilogy(range(1, len(jb_plot_data[i])+1), jb_plot_data[i], label='$\lambda_{1}$=%.3f'%l1_vals[i])
+    plt.semilogy(range(1, len(jb_plot_data[i])+1), jb_plot_data[i], marker = 'o', markerfacecolor='none', label='$\lambda_{1}$=%.3f'%l1_vals[i])
 
 fsize = 15
 plt.xticks(range(1, 26, 3), fontsize=fsize-2)
@@ -36,7 +36,7 @@ ldc_plot_data = [[float(i) for i in row[1:]] for row in ldc_data[16:21]] # the o
 #print(jb_plot_data[0])
 
 for i in range(4, -1, -1):
-    plt.semilogy(range(1, len(ldc_plot_data[i])+1), ldc_plot_data[i], label='$\lambda_{1}$=%.3f'%l1_vals[i])
+    plt.semilogy(range(1, len(ldc_plot_data[i])+1), ldc_plot_data[i], marker = 'o', markerfacecolor='none', label='$\lambda_{1}$=%.3f'%l1_vals[i])
 
 fsize = 15
 plt.xticks(range(1, 26, 3), fontsize=fsize-2)

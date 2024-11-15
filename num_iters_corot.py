@@ -44,8 +44,8 @@ ecc = 0.25
 
 # SRTD algorithm parameters
 max_srtd_iters = 25
-#srtd_tol = 1e-9 
-srtd_tol = 0.0 # keep going, want to see how it behaves in the long term
+srtd_tol = 1e-9 
+#srtd_tol = 0.0 # keep going, want to see how it behaves in the long term
 
 # tolerances to check, 1e-1, 1e-3, ..., 1e-9
 tols = 10.0**np.array([-1, -2, -3, -4, -5, -6, -7, -8, -9])
@@ -72,7 +72,12 @@ for l1 in l1vals:
             out_row[i+1] = " - " # otherwise, just put a dash
     
     jb_writer.writerow(out_row)
-    jb_residuals_writer.writerow(np.concatenate([[l1], residuals]))
+    residuals_out_row = np.concatenate([[l1], residuals])
+    formatted_residuals_out_row = ["%.4e"%num for num in residuals_out_row]
+    #print("Test:")
+    #print(formatted_residuals_out_row)
+    jb_residuals_writer.writerow(formatted_residuals_out_row)
+
 
     # plot residuals
     plt.semilogy(iterations, residuals)
@@ -128,7 +133,12 @@ for l1 in l1vals:
             out_row[i+1] = " - " # otherwise, just put a dash
     
     ldc_writer.writerow(out_row)
-    ldc_residuals_writer.writerow(np.concatenate([[l1], residuals]))
+    residuals_out_row = np.concatenate([[l1], residuals])
+    formatted_residuals_out_row = ["%.4e"%num for num in residuals_out_row]
+    #print("Test:")
+    #print(formatted_residuals_out_row)
+    ldc_residuals_writer.writerow(formatted_residuals_out_row)
+
 
     # plot residuals
     plt.semilogy(iterations, residuals)
