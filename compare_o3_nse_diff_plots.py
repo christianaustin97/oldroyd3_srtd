@@ -22,19 +22,19 @@ h1diff_jb_vals =  [float(row[6]) for row in jb_data[1:]]
 l2pdiff_jb_vals = [float(row[7]) for row in jb_data[1:]]
 
 # LDC plots
-p_ldc_l2 = plt.loglog(l1_ldc_vals, l2diff_ldc_vals)
+p_ldc_l2 = plt.loglog(l1_ldc_vals, l2diff_ldc_vals, marker='o', markerfacecolor='none')
 plt.ylabel("$L^{2}$ diff between UCM and Newtonian velocity")
 plt.xlabel("$\lambda_{1}$ value")
 plt.savefig("results_compare_ldc/ucm_nse_ldc_l2.pdf")
 plt.close()
 
-p_ldc_h1 = plt.loglog(l1_ldc_vals, h1diff_ldc_vals)
+p_ldc_h1 = plt.loglog(l1_ldc_vals, h1diff_ldc_vals, marker='o', markerfacecolor='none')
 plt.ylabel("$H^{1}$ diff between UCM and Newtonian velocity")
 plt.xlabel("$\lambda_{1}$ value")
 plt.savefig("results_compare_ldc/ucm_nse_ldc_h1.pdf")
 plt.close()
 
-p_ldc_l2p = plt.loglog(l1_ldc_vals, l2pdiff_ldc_vals)
+p_ldc_l2p = plt.loglog(l1_ldc_vals, l2pdiff_ldc_vals, marker='o', markerfacecolor='none')
 plt.ylabel("$L^{2}$ diff between UCM and Newtonian pressure")
 plt.xlabel("$\lambda_{1}$ value")
 plt.savefig("results_compare_ldc/ucm_nse_ldc_l2p.pdf")
@@ -42,23 +42,22 @@ plt.close()
 
 
 # JB Plots
-p_jb_l2 = plt.loglog(l1_jb_vals, l2diff_jb_vals)
+p_jb_l2 = plt.loglog(l1_jb_vals, l2diff_jb_vals, marker='o', markerfacecolor='none')
 plt.ylabel("$L^{2}$ diff between UCM and Newtonian velocity")
 plt.xlabel("$\lambda_{1}$ value")
 plt.savefig("results_compare_jb/ucm_nse_jb_l2.pdf")
 plt.close()
 
-p_jb_h1 = plt.loglog(l1_jb_vals, h1diff_jb_vals)
+p_jb_h1 = plt.loglog(l1_jb_vals, h1diff_jb_vals, marker='o', markerfacecolor='none')
 plt.ylabel("$H^{1}$ diff between UCM and Newtonian velocity")
 plt.xlabel("$\lambda_{1}$ value")
 plt.savefig("results_compare_jb/ucm_nse_jb_h1.pdf")
 plt.close()
 
-p_jb_l2p = plt.loglog(l1_jb_vals, l2pdiff_jb_vals)
+p_jb_l2p = plt.loglog(l1_jb_vals, l2pdiff_jb_vals, marker='o', markerfacecolor='none')
 plt.ylabel("$L^{2}$ diff between UCM and Newtonian pressure")
 plt.xlabel("$\lambda_{1}$ value")
 plt.savefig("results_compare_jb/ucm_nse_jb_l2p.pdf")
 plt.close()
-
 
 

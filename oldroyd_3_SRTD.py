@@ -260,6 +260,7 @@ def oldroyd_3_LDC_SRTD(h, s, eta, l1, mu1, max_iter, tol):
 
     # boundary data
     g_top = Expression(("s*16.0*x[0]*x[0]*(1-x[0])*(1-x[0])", "0.0"), s=s, degree = 4) # 30x^2(1-x)^2, 30 gives it integral=1
+    #g_top = Constant((float(s), 0.0))
     g_walls = Constant((0.0, 0.0)) #g=0 on walls
 
     # body forces

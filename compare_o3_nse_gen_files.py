@@ -45,6 +45,7 @@ ecc = 0.25
 
 # Mesh size
 h = 0.025
+h_jb = 2.0*h
 
 # characteristic speeds
 s = 1.0
@@ -52,22 +53,32 @@ eta = 1.0
 
 # Differing l1 values to compare to NSE
 coeffs = np.arange(1,10,2) # 1,3,5,7,9
-pows = np.power(10.0, np.arange(-6,-1)) # 10^-6, 10^-5, ..., 10^-2
-l1vals = np.concatenate((coeffs*pows[0], coeffs*pows[1], coeffs*pows[2], coeffs*pows[3], coeffs[0:1]*pows[4])) #1e-6, 3e-6, ..., 9e-6, ..., 1e-3,...9e-3, 1e-2
+pows = np.power(10.0, np.arange(-6,-1)) # 10^-6, 10^-5, 10^-4, 10^-3, 10^-2
 
-print(l1vals)
-#input('Press <ENTER> to continue')
+#1e-6, 3e-6, ..., 9e-6, ..., 1e-3,...9e-3, 1e-2, 3e-2, 5e-2
+#l1vals_ldc = np.concatenate((coeffs*pows[0], coeffs*pows[1], coeffs*pows[2], coeffs*pows[3], coeffs[0:2]*pows[4])) 
+l1vals_ldc = np.geomspace(1e-6, 4e-2, 20)
+#1e-6, 3e-6, ..., 9e-6, ..., 1e-3,...9e-3, 1e-2, 3e-2, 5e-2, 7e-2, 9e-2
+#l1vals_jb = np.concatenate((coeffs*pows[0], coeffs*pows[1], coeffs*pows[2], coeffs*pows[3], coeffs*pows[4]))
+
+l1vals_jb = np.geomspace(1e-6, 9e-2, 20)
+
+print("ldc vals:")
+print(l1vals_ldc)
+print("jb vals:")
+print(l1vals_jb)
+input('Press <ENTER> to continue')
 
 # L2 and H1 differences in UCM and 
-ldc_l2_differences = np.zeros(len(l1vals))
-ldc_h1_differences = np.zeros(len(l1vals))
-ldc_l2_p_differences = np.zeros(len(l1vals))
-jb_l2_differences = np.zeros(len(l1vals))
-jb_h1_differences = np.zeros(len(l1vals))
-jb_l2_p_differences = np.zeros(len(l1vals))
+ldc_l2_differences = np.zeros(len(l1vals_ldc))
+ldc_h1_differences = np.zeros(len(l1vals_ldc))
+ldc_l2_p_differences = np.zeros(len(l1vals_ldc))
+jb_l2_differences = np.zeros(len(l1vals_jb))
+jb_h1_differences = np.zeros(len(l1vals_jb))
+jb_l2_p_differences = np.zeros(len(l1vals_jb))
 
-for i in range(len(l1vals)):
-    l1 = float(l1vals[i])
+for i in range(len(l1vals_ldc)):
+    l1 = float(l1vals_ldc[i])
     mu1 = l1 # UCM
 
     # LDC solutions
@@ -83,9 +94,14 @@ for i in range(len(l1vals)):
 
     ucm_ldc_writer.writerow(['%.3e'%h, '%.3e'%eta, '%.3e'%l1, '%.3e'%ldc_l2_diff, '%.3e'%ldc_h1_diff, '%.3e'%ldc_l2_p_diff])
 
+for i in range(len(l1vals_jb)):
+
+    l1 = float(l1vals_jb[i])
+    mu1 = l1 # UCM
+
     # JB solutions
-    o3_jb_soln = oldroyd_3_JB_SRTD(h, rad, ecc, s, eta, l1, mu1, max_srtd_iters, srtd_tol)
-    nse_jb_soln = navier_stokes_JB(h, rad, ecc, s, eta)
+    o3_jb_soln = oldroyd_3_JB_SRTD(h_jb, rad, ecc, s, eta, l1, mu1, max_srtd_iters, srtd_tol)
+    nse_jb_soln = navier_stokes_JB(h_jb, rad, ecc, s, eta)
 
     jb_l2_diff = errornorm(o3_jb_soln.velocity, nse_jb_soln.velocity, 'l2')
     jb_h1_diff = errornorm(o3_jb_soln.velocity, nse_jb_soln.velocity, 'h1')
