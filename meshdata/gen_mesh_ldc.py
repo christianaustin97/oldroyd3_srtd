@@ -29,6 +29,7 @@ def main(h):
     corners = [nw_pt, ne_pt, se_pt, sw_pt]
 
     edges = [0,0,0,0]
+    # describe 4 edges or Lines by adjecent corners
     for i in range(4):
         edges[i] = factory.addLine(corners[i], corners[(i+1)%4])
 
