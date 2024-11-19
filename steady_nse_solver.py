@@ -124,7 +124,7 @@ def navier_stokes_JB(h, rad, ecc, s, eta):
 
 def navier_stokes_LDC(h, s, eta):
     nx = round(1/h)
-    mesh = UnitCubeMesh(nx, nx, nx)
+    mesh = UnitSquareMesh(nx, nx)
     print("Mesh loaded into FEniCS")
 
     # boundary data

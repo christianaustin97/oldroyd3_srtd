@@ -19,7 +19,7 @@ ecc = 0.25
 
 # Fluid parameters
 eta = 1.0
-lambda1 = 1e-1
+lambda1 = 1e-2
 mu1 = lambda1
 
 # SRTD algorithm parameters
@@ -27,13 +27,15 @@ max_srtd_iters = 20
 srtd_tol = 1e-9
 
 # LDC
-h = 1.25e-2
+h = 2.5e-2
+nx = round(1/h)
 
 filename = "lid_driven_cavity_h_%.4e"%h
 meshfile = "meshdata/" + filename + ".h5"
 svgfile = "plots/" + filename + ".svg" # .svg vector graphics
 pdffile = "plots/" + filename + ".pdf"
 
+"""
 if not os.path.exists(meshfile):
     print("Creating mesh...")
     gen_mesh_jb.main(h, rad, ecc)
@@ -41,7 +43,14 @@ if not os.path.exists(meshfile):
 mesh = Mesh() #empty mesh
 infile = HDF5File(MPI.comm_world, meshfile, 'r')
 infile.read(mesh, '/mesh', True) #for some reason, need this True flag to import a mesh?
-infile.close()
+infile.close()"""
+
+mesh = UnitSquareMesh(nx, nx)
+print("Num el of non crossed: %d"%mesh.num_cells())
+mesh = UnitSquareMesh(nx, nx, "crossed")
+print("Num el of crossed: %d"%mesh.num_cells())
+
+input("press any key ...")
 
 ldc_plot = plot(mesh)
 plt.savefig(svgfile, bbox_inches='tight')
@@ -142,6 +151,7 @@ plt.close()
 
 
 
+input("Press any key to continue ...")
 
 
 # JB

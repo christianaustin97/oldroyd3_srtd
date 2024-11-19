@@ -10,9 +10,9 @@ To change the solver or geometry, make sure you change the the following variabl
 """
 
 from fenics import *
-from oldroyd_3_EVSS import *
+#from oldroyd_3_EVSS import *
 from oldroyd_3_SRTD import *
-from oldroyd_3_SRTD_SUPG import *
+#from oldroyd_3_SRTD_SUPG import *
 
 import os
 import sys
@@ -74,7 +74,7 @@ p_prev = Constant(1.0)
 
 # mesh refinement experiment
 for h in h_array:
-    meshfile = "meshdata/lid_driven_cavity_h_%.4e.h5"%h
+    """meshfile = "meshdata/lid_driven_cavity_h_%.4e.h5"%h
     
     if not os.path.exists(meshfile):
         print("Creating mesh...")
@@ -84,7 +84,10 @@ for h in h_array:
     mesh = Mesh() #empty mesh
     infile = HDF5File(MPI.comm_world, meshfile, 'r')
     infile.read(mesh, '/mesh', True) #for some reason, need this True flag to import a mesh?
-    infile.close()
+    infile.close()"""
+
+    nx = round(1/h)
+    mesh = UnitSquareMesh(nx, nx)
     
     num_els = mesh.num_cells()
     
