@@ -114,7 +114,7 @@ def navier_stokes_JB(h, rad, ecc, s, eta):
     u_soln, p_soln = you.split(deepcopy=True)
     
     #also return stress tensor value, for reference
-    stress_tensor = project( 2*eta*(sym(grad(u_soln))) , T)
+    stress_tensor = 2*eta*(sym(grad(u_soln)))
     
     #print("L2 norm of stress tensor:")
     #print(norm(stress_tensor, 'l2'))
@@ -123,18 +123,8 @@ def navier_stokes_JB(h, rad, ecc, s, eta):
  
 
 def navier_stokes_LDC(h, s, eta):
-    
-    meshfile = "meshdata/lid_driven_cavity_h_%.4e.h5"%h
-    
-    if not os.path.exists(meshfile):
-        print("Creating mesh...")
-        gen_mesh_ldc.main(h)
-    
-    #then, simply read the mesh in 
-    mesh = Mesh() #empty mesh
-    infile = HDF5File(MPI.comm_world, meshfile, 'r')
-    infile.read(mesh, '/mesh', True) #for some reason, need this flag to import a mesh?
-    infile.close()
+    nx = round(1/h)
+    mesh = UnitCubeMesh(nx, nx, nx)
     print("Mesh loaded into FEniCS")
 
     # boundary data
@@ -198,7 +188,85 @@ def navier_stokes_LDC(h, s, eta):
     u_soln, p_soln = you.split(deepcopy=True)
     
     #also return stress tensor value, for reference
-    stress_tensor = project( 2*eta*(sym(grad(u_soln))) , T)
+    stress_tensor = 2*eta*(sym(grad(u_soln)))
+    
+    #print("L2 norm of stress tensor:")
+    #print(norm(stress_tensor, 'l2'))
+    
+    return Results(converged, u_soln, p_soln, stress_tensor, iters)
+
+
+def navier_stokes_LDC3D(h, s, eta):
+    nx = round(1/h)
+    mesh = UnitCubeMesh(nx, nx, nx)
+    print("Mesh loaded into FEniCS")
+
+    # boundary data
+    g_top = Expression(("s*256.0*x[0]*x[0]*x[1]*x[1]*(1-x[0])*(1-x[0])*(1-x[1])*(1-x[1])", "0.0", "0.0"), s=s, degree = 4) 
+    #g_top = Constant((float(s), 0.0))
+    g_walls = Constant((0.0, 0.0, 0.0)) #g=0 on walls
+    
+    # body forces
+    f = Constant((0.0, 0.0, 0.0)) # no body forces
+
+    # Element spaces
+    P_elem = FiniteElement("CG", tetrahedron, 1) #pressure and auxiliary pressure, degree 1 elements
+    V_elem = VectorElement("CG", tetrahedron, 2) #velocity, degree 2 elements
+    T_elem = TensorElement("CG", tetrahedron, 2, symmetry=True) #tensor, degree 2 elements (only used for outputting stress Tensor)
+    
+    W_elem = MixedElement([V_elem, P_elem]) # Mixed/Taylor Hood element space for Navier-Stokes type equations
+
+    W = FunctionSpace(mesh, W_elem) # Taylor-Hood/mixed space
+    T = FunctionSpace(mesh, T_elem) # tensor space (only used for returning stress)
+    
+    # Interpolate body force and BCs onto velocity FE space
+    g_top = interpolate(g_top, W.sub(0).collapse())
+    g_walls = interpolate(g_walls, W.sub(0).collapse())
+    f = interpolate(f, W.sub(0).collapse())
+    
+    # Define boundary conditions
+    top_lid = 'near(x[2], 1.0) && on_boundary'
+    walls = '(near(x[0], 0.0) || near(x[0], 1.0) || near(x[1], 0.0) || near(x[1], 1.0) || near(x[2], 0.0)) && on_boundary'
+    origin = 'near(x[0], 0.0) && near(x[1], 0.0) && near(x[2], 0.0)' #for pressure regulating
+
+    bc_top   = DirichletBC(W.sub(0), g_top, top_lid) # driving lid
+    bc_walls = DirichletBC(W.sub(0), g_walls, walls) # no slip
+    bc_press = DirichletBC(W.sub(1), Constant(0.0), origin, 'pointwise') # pressure regulating
+
+    # Gather boundary conditions (any others would go here, separated by a comma)
+    bcs = [bc_top, bc_walls, bc_press] #possibly get rid of pressure regulator if it breaks something in NN solve
+    
+    # Variational Problem: Trial and Test Functions
+    w = TrialFunction(W) # nonlinear in w
+    (u,pi) = split(w)
+    (v, q) = TestFunctions(W)
+    
+    # eta*<del(u), del(v) > + <del(u).u, v> - <pi, div(v)> + <q, div(u)> 
+    a_nse = eta*inner(grad(u), grad(v))*dx + dot( dot(grad(u),u), v)*dx - (pi*div(v))*dx + q*div(u)*dx
+    f_nse = inner(f,v)*dx
+    
+    F = a_nse - f_nse
+    
+    you = Function(W)
+    F_act = action(F, you) 
+    dF = derivative(F_act, you)
+
+    problem = NonlinearVariationalProblem(F_act, you, bcs, dF)
+    solver = NonlinearVariationalSolver(problem)
+    prm = solver.parameters
+    prm["nonlinear_solver"] = "newton"
+    prm["newton_solver"]["linear_solver"] = "mumps" # utilizes parallel processors
+    try: 
+        (iters, converged) = solver.solve()
+    except: 
+        print("Newton Method for Navier-Stokes failed to converge")
+        return Results(False, None, None, None, 0)
+    
+    # Likewise, not sure which is preferred
+    u_soln, p_soln = you.split(deepcopy=True)
+    
+    #also return stress tensor value, for reference
+    stress_tensor = 2*eta*(sym(grad(u_soln)))
     
     #print("L2 norm of stress tensor:")
     #print(norm(stress_tensor, 'l2'))

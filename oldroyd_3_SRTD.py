@@ -81,18 +81,20 @@ def oldroyd_3_JB_SRTD(h, rad, ecc, s, eta, l1, mu1, max_iter, tol):
     speed_inner = s # clockwise tangential speed of inner bearing, 
     g_inner = Expression(("s*(x[1]+ecc)/r", "-s*x[0]/r"), s=speed_inner, r=rad, ecc=ecc, degree=1) 
     g_outer = Expression(("-s*x[1]", "s*x[0]"), s=speed_outer, degree=1) # no slip on outer bearing 
+    
+    # body forces
     f = Constant((0.0, 0.0)) # no body forces
     
     # Element spaces
     P_elem = FiniteElement("CG", triangle, 1) #pressure and auxiliary pressure, degree 1 elements
     V_elem = VectorElement("CG", triangle, 2) #velocity, degree 2 elements
-    T_elem = TensorElement("CG", triangle, 2, symmetry=True) #tensor, degree 2 elements (only used for outputting stress Tensor)
+    T_elem = TensorElement("CG", triangle, 2, symmetry=True) #stress tensor, degree 2 elements 
     
     W_elem = MixedElement([V_elem, P_elem]) # Mixed/Taylor Hood element space for Navier-Stokes type equations
 
     W = FunctionSpace(mesh, W_elem) # Taylor-Hood/mixed space
     P = FunctionSpace(mesh, P_elem) # true pressure space
-    #V = FunctionSpace(mesh, V_elem) # velocity space (not used)
+    V = FunctionSpace(mesh, V_elem) # velocity space (not used)
     T = FunctionSpace(mesh, T_elem) # tensor space
     
     # Interpolate body force and BCs onto velocity FE space
@@ -108,136 +110,121 @@ def oldroyd_3_JB_SRTD(h, rad, ecc, s, eta, l1, mu1, max_iter, tol):
     # Gather boundary conditions (any others would go here, separated by a comma)
     bcs = [bc_inner, bc_outer, bc_press] 
     
-    # Variational Problem: Trial and Test Functions
-    w = TrialFunction(W) #will be our NS-like TrialFunction
-    (u,pi) = split(w) 
-    (v, q) = TestFunctions(W)
+   # Variational Problem Begin
+    #
+    # Trial Functions. Think of TrialFunctions as symbolic, and they are only used in defining the weak forms
+    w = TrialFunction(W) # our NS-like TrialFunction
+    (u,pi) = split(w) # trial functions, representing u1, pi1
+    p = TrialFunction(P) # true pressure trial function for auxiliary pressure equation, representing p1
+    tau = TrialFunction(T) # stress trial function for stress tensor equation, representing T1
 
-    p = TrialFunction(P) #true pressure trial function for auxiliary pressure equation
-    r = TestFunction(P)
+    # Weak form test functions. Also think of these as symbolic, and they are only used in defining the weak forms
+    (v, q) = TestFunctions(W) # test functions for NSE step
+    r = TestFunction(P) # test functions for pressure transport
+    S = TestFunction(T) # test functions for constitutive equation
 
-    tau = TrialFunction(T) #stress trial function for stress tensor equation
-    S = TestFunction(T)
-    
-    # Initial guesses for iterative solve
-    p0 = Constant(0.0) # true pressure
-    p0 = interpolate(p0, P)
+    # previous and next iterations. Symbolic when they are used in the weak forms, or pointers to the actual function values 
+    #w0 = Function(W)
+    u0 = Function(V)    
+    #pi0 = Function(P)
+    p0 = Function(P)
+    T0 = Function(T)
 
-    u0 = Constant((0.0, 0.0)) # velocity
-    u0 = interpolate(u0, W.sub(0).collapse())
+    w1 = Function(W)
+    u1 = Function(V)
+    pi1 = Function(P)
+    p1 = Function(P)
+    T1 = Function(T)
 
-    T0 = Constant( ((0.0, 0.0),(0.0, 0.0)) ) # stress tensor
-    T0 = interpolate(T0, T)
-    
-    pi1 = Constant(0.0) #not ever used, just so we're never returning an empty var in the event of failure
-    pi1 = interpolate(pi1, W.sub(1).collapse())
-    
-    # values to actually be returned
-    u_min = u0
-    pi_min = pi1
-    p_min = p0
-    T_min = T0
+    # Functions we'll actually return
+    u_return = Function(V)
+    pi_return = Function(P)
+    p_return = Function(P)
+    T_return = Function(T)
 
-    #LHS of NS-like solve is same throughout, I think this can exist outside the loop
+    #LHS of NS-like solve, a((u,pi), (v,q)) 
     a_nse = eta*inner(grad(u), grad(v))*dx + dot( dot(grad(u),u), v)*dx - (pi*div(v))*dx + q*div(u)*dx
+
+    # RHS of NS-like stage is given in section 7 of Girault/Scott paper F((v,q); u0, T0)
+    term1 = inner(f, v - l1*dot(grad(v), u0))*dx #orange term
+    term2 = (p0*inner(nabla_grad(u0), grad(v)))*dx  #blue term
+    term3 = -inner( dot(grad(u0),u0) , dot(grad(v),u0) )*dx #red term
+    term4 = inner( dot(grad(u0),T0) , grad(v) )*dx #light green term
+    term5 = inner( dot(sym(grad(u0)),T0)+dot(T0,sym(grad(u0))) , grad(v) )*dx #dark green term
     
-    you = Function(W) # uncomment this if you want Newton NSE iter to start from the previous guess (we do, so uncommented)
+    L_nse = term1 - l1*(term2 + term3 + term4) + (l1-mu1)*term5 #mathcal F 
     
+    # Nonlinear in u, so must solve a-L==0 and use Newton instead of a==L directly
+    F = a_nse - L_nse
+
+    # Nonlinear NSE, so using Newton iteration
+    F_act = action(F, w1) 
+    dF = derivative(F_act, w1)
+    nse_problem = NonlinearVariationalProblem(F_act, w1, bcs, dF) # will update w1 values every time we call solver.solve()
+    nse_solver = NonlinearVariationalSolver(nse_problem)
+    nse_prm = nse_solver.parameters
+    nse_prm["nonlinear_solver"] = "newton"
+    nse_prm["newton_solver"]["linear_solver"] = "mumps" # utilizes parallel processors
+
+    # Pressure transport equation
+    ap = (p + l1*dot(grad(p), u1)) * r * dx 
+    Lp = pi1 * r * dx 
+    
+    p1 = Function(P)
+    p_problem = LinearVariationalProblem(ap, Lp, p1) # will update p1 values every time we call solver.solve()
+    p_solver = LinearVariationalSolver(p_problem)
+
+    
+    # Stress transport equation/Constitutive equation
+    aT = inner( tau + l1*(dot(grad(tau),u1) + dot(-skew(grad(u1)), tau) - dot(tau, -skew(grad(u1)))) \
+                        - mu1*(dot(sym(grad(u1)), tau) + dot(tau, sym(grad(u1)))) , S)*dx
+    LT = 2.0*eta*inner(sym(grad(u1)), S)*dx
+
+    T_problem = LinearVariationalProblem(aT, LT, T1) # will update p1 values every time we call solver.solve()
+    T_solver = LinearVariationalSolver(T_problem)
+    T_prm = T_solver.parameters
+    T_prm["linear_solver"] = "mumps"
+
     # Begin SRTD iterative solve
     n=1
     l2diff = 1.0
     residuals = {} # empty dict to save residual value after each iteration 
     min_residual = 1.0
     while(n<=max_iter and min_residual > tol):
-        # Stage 1: solve NS type equation for u(n) and pi(n) given u(n-1), p(n-1), and T(n-1)
-        #   Test functions:  v and q
-        #   Trial functions: u and pi
-        
-        # RHS of NS-like stage is given in section 7 of Girault/Scott paper
-        E0 = sym(grad(u0))
-        term1 = inner(f, v - l1*dot(grad(v), u0))*dx #orange term
-        term2 = (p0*inner(nabla_grad(u0), grad(v)))*dx  #blue term
-        term3 = -inner( dot(grad(u0),u0) , dot(grad(v),u0) )*dx #red term
-        term4 = inner( dot(grad(u0),T0) , grad(v) )*dx #light green term
-        term5 = inner( dot(E0,T0)+dot(T0,E0) , grad(v) )*dx #dark green term
-        
-        L_nse = term1 - l1*(term2 + term3 + term4) + (l1-mu1)*term5 #mathcal F 
-        
-        # Nonlinear in u, so must solve a-L==0 and use Newton instead of a==L directly
-        F = a_nse - L_nse
-        
-        #Get Jacobian/Gateaux derivative
-        #you = Function(W) # Uncomment this if you want to start the Newton solve from 0 every iter
-        F_act = action(F, you) 
-        dF = derivative(F_act, you)
+        nse_solver.solve() # updates w1
 
-        problem = NonlinearVariationalProblem(F_act, you, bcs, dF)
-        solver = NonlinearVariationalSolver(problem)
-        # need to adjust solver parameters b/c PetSC runs out of memory if default solver is used. 
-        prm = solver.parameters
-        prm["nonlinear_solver"] = "newton"
-        prm["newton_solver"]["linear_solver"] = "mumps" # utilizes parallel processors
-        try: 
-            solver.solve()
-        except: 
-            print("Newton Method in the Navier-Stokes-like stage failed to converge")
-            return Results(False, u_min, pi_min, p_min, T_min, residuals)
-        
-        #extract solution parts
-        u1, pi1 = you.split(deepcopy=True)
-        
-        ###########################################################################
-        # These next two are transport equations, meaning that they could potentially
-        #   benefit from using Streamline upwinding (SUPG). This is implemented in another file
-        #
-        # Stage 2: solve scalar transport equation for p(n) given pi(n), u(n)
-        #   Trial function: p
-        #   Test function: r (nonbold 'v' in Scott paper)
-        
-        ap = (p + l1*dot(grad(p), u1)) * r * dx 
-        Lp = pi1 * r * dx 
-        
-        p1 = Function(P)
-        solve(ap == Lp, p1)
-        
-        # Step 3: solve Tensor equation for T(n) given u(n), also linear in T 
-        #   Trial function: tau 
-        #   Test function: S + h*dot(del(S), u1)
-        
-        E1 = sym(grad(u1))
-        R1 = -skew(grad(u1)) #or skew(nabla_grad(u1)), the true vorticity tensor when using physicist notation
-        
-        aT = inner( tau + l1*(dot(grad(tau),u1) + dot(R1, tau) - dot(tau, R1)) \
-                        - mu1*(dot(E1, tau) + dot(tau, E1)) , S)*dx
-        LT = 2.0*eta*inner(E1, S )*dx
-        
-        T1 = Function(T)
-        solve(aT == LT, T1)
-        
-        # End of this iteration
-        l2diff = errornorm(u1, u0, norm_type='l2')
+        u_next, pi_next = w1.split(deepcopy=True)
+        assign(u1, u_next) # u1 updated
+        assign(pi1, pi_next) # pi1 updated
+
+        p_solver.solve() # p1 updated
+
+        T_solver.solve() # T1 updated
+
+        # End of this SRTD iteration
+        l2diff = errornorm(u1, u0, norm_type='l2', degree_rise=0)
         residuals[n] = l2diff
         if(l2diff <= min_residual):
             min_residual = l2diff
-            u_min = u1
-            pi_min = pi1
-            p_min = p1
-            T_min = T1
+            u_return = u1
+            pi_return = pi1
+            p_return = p1
+            T_return = T1
 
         print("SRTD Iteration %d: r = %.4e (tol = %.3e)" % (n, l2diff, tol))
         n = n+1
         
-        #update
-        p0 = p1
-        u0 = u1
-        T0 = T1     
+        #update u0, p0, T0
+        assign(u0, u1)
+        assign(p0, p1)
+        assign(T0, T1)    
         
     # Stuff to do after the iterations are over
     if(min_residual <= tol):
         converged = True
     else:
         converged = False
-    return Results(converged, u_min, pi_min, p_min, T_min, residuals)
+    return Results(converged, u_return, pi_return, p_return, T_return, residuals)
 
 
 # Lid-Driven Cavity Problem
@@ -245,17 +232,8 @@ def oldroyd_3_JB_SRTD(h, rad, ecc, s, eta, l1, mu1, max_iter, tol):
 def oldroyd_3_LDC_SRTD(h, s, eta, l1, mu1, max_iter, tol):
     # s is the average velocity of the top lid
 
-    meshfile = "meshdata/lid_driven_cavity_h_%.4e.h5"%h
-    
-    if not os.path.exists(meshfile):
-        print("Creating mesh...")
-        gen_mesh_ldc.main(h)
-    
-    #then, simply read the mesh in 
-    mesh = Mesh() #empty mesh
-    infile = HDF5File(MPI.comm_world, meshfile, 'r')
-    infile.read(mesh, '/mesh', True) #for some reason, need this flag to import a mesh?
-    infile.close()
+    nx = round(1/h)
+    mesh = UnitSquareMesh(nx, nx)
     print("Mesh loaded into FEniCS")
 
     # boundary data
@@ -275,7 +253,7 @@ def oldroyd_3_LDC_SRTD(h, s, eta, l1, mu1, max_iter, tol):
 
     W = FunctionSpace(mesh, W_elem) # Taylor-Hood/mixed space
     P = FunctionSpace(mesh, P_elem) # true pressure space
-    #V = FunctionSpace(mesh, V_elem) # velocity space (not used)
+    V = FunctionSpace(mesh, V_elem) # velocity space (not used)
     T = FunctionSpace(mesh, T_elem) # tensor space
     
     # Interpolate body force and BCs onto velocity FE space
@@ -286,144 +264,293 @@ def oldroyd_3_LDC_SRTD(h, s, eta, l1, mu1, max_iter, tol):
     # Define boundary conditions
     top_lid = 'near(x[1], 1.0) && on_boundary'
     walls = '(near(x[1], 0.0) || near(x[0], 0.0) || near(x[0], 1.0)) && on_boundary'
-    bl_corner = 'near(x[0], 0.0) && near(x[1], 0.0)' #for pressure regulating
+    origin = 'near(x[0], 0.0) && near(x[1], 0.0)' #for pressure regulating
 
     bc_top = DirichletBC(W.sub(0), g_top, top_lid)
     bc_walls = DirichletBC(W.sub(0), g_walls, walls)
-    pressure_reg = DirichletBC(W.sub(1), Constant(0.0), bl_corner, 'pointwise')
+    pressure_reg = DirichletBC(W.sub(1), Constant(0.0), origin, 'pointwise')
         
     # Gather boundary conditions (any others would go here, separated by a comma)
     bcs = [bc_top, bc_walls, pressure_reg] 
     
-    # Variational Problem: Trial and Test Functions
-    w = TrialFunction(W) #will be our NS-like TrialFunction
-    (u,pi) = split(w) #trial functions
-    (v, q) = TestFunctions(W)
+    # Variational Problem Begin
+    #
+    # Trial Functions. Think of TrialFunctions as symbolic, and they are only used in defining the weak forms
+    w = TrialFunction(W) # our NS-like TrialFunction
+    (u,pi) = split(w) # trial functions, representing u1, pi1
+    p = TrialFunction(P) # true pressure trial function for auxiliary pressure equation, representing p1
+    tau = TrialFunction(T) # stress trial function for stress tensor equation, representing T1
 
-    p = TrialFunction(P) #true pressure trial function for auxiliary pressure equation
-    r = TestFunction(P)
+    # Weak form test functions. Also think of these as symbolic, and they are only used in defining the weak forms
+    (v, q) = TestFunctions(W) # test functions for NSE step
+    r = TestFunction(P) # test functions for pressure transport
+    S = TestFunction(T) # test functions for constitutive equation
 
-    tau = TrialFunction(T) #stress trial function for stress tensor equation
-    S = TestFunction(T)
-    
-    # Initial guesses for iterative solve
-    p0 = Constant(0.0) # true pressure
-    p0 = interpolate(p0, P)
+    # previous and next iterations. Symbolic when they are used in the weak forms, or pointers to the actual function values 
+    #w0 = Function(W)
+    u0 = Function(V)    
+    #pi0 = Function(P)
+    p0 = Function(P)
+    T0 = Function(T)
 
-    u0 = Constant((0.0, 0.0)) # velocity
-    u0 = interpolate(u0, W.sub(0).collapse())
+    w1 = Function(W)
+    u1 = Function(V)
+    pi1 = Function(P)
+    p1 = Function(P)
+    T1 = Function(T)
 
-    T0 = Constant( ((0.0, 0.0),(0.0, 0.0)) ) # stress tensor
-    T0 = interpolate(T0, T)
-    
-    pi1 = Constant(0.0) #not ever used, just so we're never returning an empty var in the event of failure
-    pi1 = interpolate(pi1, W.sub(1).collapse())
-    
-    # values to actually be returned
-    u_min = u0
-    pi_min = pi1
-    p_min = p0
-    T_min = T0
+    # Functions we'll actually return
+    u_return = Function(V)
+    pi_return = Function(P)
+    p_return = Function(P)
+    T_return = Function(T)
 
-    #LHS of NS-like solve is same throughout, I think this can exist outside the loop
+
+    #LHS of NS-like solve, a((u,pi), (v,q)) 
     a_nse = eta*inner(grad(u), grad(v))*dx + dot( dot(grad(u),u), v)*dx - (pi*div(v))*dx + q*div(u)*dx
+
+    # RHS of NS-like stage is given in section 7 of Girault/Scott paper F((v,q); u0, T0)
+    term1 = inner(f, v - l1*dot(grad(v), u0))*dx #orange term
+    term2 = (p0*inner(nabla_grad(u0), grad(v)))*dx  #blue term
+    term3 = -inner( dot(grad(u0),u0) , dot(grad(v),u0) )*dx #red term
+    term4 = inner( dot(grad(u0),T0) , grad(v) )*dx #light green term
+    term5 = inner( dot(sym(grad(u0)),T0)+dot(T0,sym(grad(u0))) , grad(v) )*dx #dark green term
     
-    you = Function(W) # uncomment this if you want Newton NSE iter to start from the previous guess 
+    L_nse = term1 - l1*(term2 + term3 + term4) + (l1-mu1)*term5 #mathcal F 
     
+    # Nonlinear in u, so must solve a-L==0 and use Newton instead of a==L directly
+    F = a_nse - L_nse
+
+    # Nonlinear NSE, so using Newton iteration
+    F_act = action(F, w1) 
+    dF = derivative(F_act, w1)
+    nse_problem = NonlinearVariationalProblem(F_act, w1, bcs, dF) # will update w1 values every time we call solver.solve()
+    nse_solver = NonlinearVariationalSolver(nse_problem)
+    nse_prm = nse_solver.parameters
+    nse_prm["nonlinear_solver"] = "newton"
+    nse_prm["newton_solver"]["linear_solver"] = "mumps" # utilizes parallel processors
+
+    # Pressure transport equation
+    ap = (p + l1*dot(grad(p), u1)) * r * dx 
+    Lp = pi1 * r * dx 
+    
+    p1 = Function(P)
+    p_problem = LinearVariationalProblem(ap, Lp, p1) # will update p1 values every time we call solver.solve()
+    p_solver = LinearVariationalSolver(p_problem)
+
+    
+    # Stress transport equation/Constitutive equation
+    aT = inner( tau + l1*(dot(grad(tau),u1) + dot(-skew(grad(u1)), tau) - dot(tau, -skew(grad(u1)))) \
+                        - mu1*(dot(sym(grad(u1)), tau) + dot(tau, sym(grad(u1)))) , S)*dx
+    LT = 2.0*eta*inner(sym(grad(u1)), S)*dx
+
+    T_problem = LinearVariationalProblem(aT, LT, T1) # will update p1 values every time we call solver.solve()
+    T_solver = LinearVariationalSolver(T_problem)
+    T_prm = T_solver.parameters
+    T_prm["linear_solver"] = "mumps"
+
     # Begin SRTD iterative solve
     n=1
     l2diff = 1.0
     residuals = {} # empty dict to save residual value after each iteration 
     min_residual = 1.0
     while(n<=max_iter and min_residual > tol):
-        # Stage 1: solve NS type equation for u(n) and pi(n) given u(n-1), p(n-1), and T(n-1)
-        # Test functions:  v and q
-        # Trial functions: u and pi
-        
-        # RHS of NS-like stage is given in section 7 of Girault/Scott paper
-        E0 = sym(grad(u0))
-        term1 = inner(f, v - l1*dot(grad(v), u0))*dx #orange term
-        term2 = (p0*inner(nabla_grad(u0), grad(v)))*dx  #blue term
-        term3 = -inner( dot(grad(u0),u0) , dot(grad(v),u0) )*dx #red term
-        term4 = inner( dot(grad(u0),T0) , grad(v) )*dx #light green term
-        term5 = inner( dot(E0,T0)+dot(T0,E0) , grad(v) )*dx #dark green term
-        
-        L_nse = term1 - l1*(term2 + term3 + term4) + (l1-mu1)*term5 #mathcal F 
-        
-        # Nonlinear in u, so must solve a-L==0 and use Newton instead of a==L directly
-        F = a_nse - L_nse
-        
-        #Get Jacobian/Gateaux derivative
-        #you = Function(W) # Uncomment this if you want to start the Newton solve from 0 every iter
-        F_act = action(F, you) 
-        dF = derivative(F_act, you)
+        nse_solver.solve() # updates w1
 
-        problem = NonlinearVariationalProblem(F_act, you, bcs, dF)
-        solver = NonlinearVariationalSolver(problem)
-        try: 
-            solver.solve()
-        except: 
-            print("Newton Method in the Navier-Stokes-like stage failed to converge")
-            return Results(False, u_min, pi_min, p_min, T_min, residuals)
-        
-        #extract solution parts
-        u1, pi1 = you.split(deepcopy=True)
-        
-        ###########################################################################
-        # These next two are transport equations, meaning that they could potentially
-        #   benefit from using Streamline upwinding (SUPG). This is implemented in another file
-        #
-        # Stage 2: solve scalar transport equation for p(n) given pi(n), u(n)
-        #   Trial function: p
-        #   Test function: r (nonbold 'v' in Scott paper)
-        
-        ap = (p + l1*dot(grad(p), u1)) * r * dx 
-        Lp = pi1 * r * dx 
-        
-        p1 = Function(P)
-        solve(ap == Lp, p1)
-        
-        # Step 3: solve Tensor equation for T(n) given u(n), also linear in T 
-        #   Trial function: tau 
-        #   Test function: S + h*dot(del(S), u1)
-        
-        E1 = sym(grad(u1))
-        R1 = -skew(grad(u1)) #or skew(nabla_grad(u1)), the true vorticity tensor when using physicist notation
-        
-        aT = inner( tau + l1*(dot(grad(tau),u1) + dot(R1, tau) - dot(tau, R1)) \
-                        - mu1*(dot(E1, tau) + dot(tau, E1)) , S)*dx
-        LT = 2.0*eta*inner(E1, S)*dx
-        
-        T1 = Function(T)
-        solve(aT == LT, T1)
-        
-        # End of this iteration
-        l2diff = errornorm(u1, u0, norm_type='l2')
+        u_next, pi_next = w1.split(deepcopy=True)
+        assign(u1, u_next) # u1 updated
+        assign(pi1, pi_next) # pi1 updated
+
+        p_solver.solve() # p1 updated
+
+        T_solver.solve() # T1 updated
+
+        # End of this SRTD iteration
+        l2diff = errornorm(u1, u0, norm_type='l2', degree_rise=0)
         residuals[n] = l2diff
         if(l2diff <= min_residual):
             min_residual = l2diff
-            u_min = u1
-            pi_min = pi1
-            p_min = p1
-            T_min = T1
+            u_return = u1
+            pi_return = pi1
+            p_return = p1
+            T_return = T1
 
         print("SRTD Iteration %d: r = %.4e (tol = %.3e)" % (n, l2diff, tol))
         n = n+1
         
-        #update
-        p0 = p1
-        u0 = u1
-        T0 = T1     
+        #update u0, p0, T0
+        assign(u0, u1)
+        assign(p0, p1)
+        assign(T0, T1)    
         
     # Stuff to do after the iterations are over
     if(min_residual <= tol):
         converged = True
     else:
         converged = False
-    return Results(converged, u_min, pi_min, p_min, T_min, residuals)
+    return Results(converged, u_return, pi_return, p_return, T_return, residuals)
 
      
+def oldroyd_3_LDC3D_SRTD(h, s, eta, l1, mu1, max_iter, tol):
+    nx = round(1/h)
+    mesh = UnitCubeMesh(nx, nx, nx)
+    print("Mesh loaded into FEniCS")
+
+    # boundary data
+    g_top = Expression(("s*256.0*x[0]*x[0]*x[1]*x[1]*(1-x[0])*(1-x[0])*(1-x[1])*(1-x[1])", "0.0", "0.0"), s=s, degree = 4) 
+    #g_top = Constant((float(s), 0.0))
+    g_walls = Constant((0.0, 0.0, 0.0)) #g=0 on walls
     
+    # body forces
+    f = Constant((0.0, 0.0, 0.0)) # no body forces
+    
+    # Element spaces
+    P_elem = FiniteElement("CG", tetrahedron, 1) #pressure and auxiliary pressure, degree 1 elements
+    V_elem = VectorElement("CG", tetrahedron, 2) #velocity, degree 2 elements
+    T_elem = TensorElement("CG", tetrahedron, 2, symmetry=True) #stress tensor, degree 2 elements 
+    
+    W_elem = MixedElement([V_elem, P_elem]) # Mixed/Taylor Hood element space for Navier-Stokes type equations
+
+    W = FunctionSpace(mesh, W_elem) # Taylor-Hood/mixed space
+    P = FunctionSpace(mesh, P_elem) # true pressure space
+    V = FunctionSpace(mesh, V_elem) # velocity space 
+    T = FunctionSpace(mesh, T_elem) # tensor space
+    
+    # Interpolate body force and BCs onto velocity FE space
+    g_top = interpolate(g_top, W.sub(0).collapse())
+    g_walls = interpolate(g_walls, W.sub(0).collapse())
+    f = interpolate(f, W.sub(0).collapse())
+    
+    # Define boundary conditions
+    top_lid = 'near(x[2], 1.0) && on_boundary'
+    walls = '(near(x[0], 0.0) || near(x[0], 1.0) || near(x[1], 0.0) || near(x[1], 1.0) || near(x[2], 0.0)) && on_boundary'
+    origin = 'near(x[0], 0.0) && near(x[1], 0.0) && near(x[2], 0.0)' #for pressure regulating
+
+    bc_top = DirichletBC(W.sub(0), g_top, top_lid)
+    bc_walls = DirichletBC(W.sub(0), g_walls, walls)
+    pressure_reg = DirichletBC(W.sub(1), Constant(0.0), origin, 'pointwise')
+        
+    # Gather boundary conditions (any others would go here, separated by a comma)
+    bcs = [bc_top, bc_walls, pressure_reg] 
+    
+    # Variational Problem Begin
+    #
+    # Trial Functions. Think of TrialFunctions as symbolic, and they are only used in defining the weak forms
+    w = TrialFunction(W) # our NS-like TrialFunction
+    (u,pi) = split(w) # trial functions, representing u1, pi1
+    p = TrialFunction(P) # true pressure trial function for auxiliary pressure equation, representing p1
+    tau = TrialFunction(T) # stress trial function for stress tensor equation, representing T1
+
+    # Weak form test functions. Also think of these as symbolic, and they are only used in defining the weak forms
+    (v, q) = TestFunctions(W) # test functions for NSE step
+    r = TestFunction(P) # test functions for pressure transport
+    S = TestFunction(T) # test functions for constitutive equation
+
+    # previous and next iterations. Symbolic when they are used in the weak forms, or pointers to the actual function values 
+    #w0 = Function(W)
+    u0 = Function(V)    
+    #pi0 = Function(P)
+    p0 = Function(P)
+    T0 = Function(T)
+
+    w1 = Function(W)
+    u1 = Function(V)
+    pi1 = Function(P)
+    p1 = Function(P)
+    T1 = Function(T)
+
+    # Functions we'll actually return
+    u_return = Function(V)
+    pi_return = Function(P)
+    p_return = Function(P)
+    T_return = Function(T)
+
+
+    #LHS of NS-like solve, a((u,pi), (v,q)) 
+    a_nse = eta*inner(grad(u), grad(v))*dx + dot( dot(grad(u),u), v)*dx - (pi*div(v))*dx + q*div(u)*dx
+
+    # RHS of NS-like stage is given in section 7 of Girault/Scott paper F((v,q); u0, T0)
+    term1 = inner(f, v - l1*dot(grad(v), u0))*dx #orange term
+    term2 = (p0*inner(nabla_grad(u0), grad(v)))*dx  #blue term
+    term3 = -inner( dot(grad(u0),u0) , dot(grad(v),u0) )*dx #red term
+    term4 = inner( dot(grad(u0),T0) , grad(v) )*dx #light green term
+    term5 = inner( dot(sym(grad(u0)),T0)+dot(T0,sym(grad(u0))) , grad(v) )*dx #dark green term
+    
+    L_nse = term1 - l1*(term2 + term3 + term4) + (l1-mu1)*term5 #mathcal F 
+    
+    # Nonlinear in u, so must solve a-L==0 and use Newton instead of a==L directly
+    F = a_nse - L_nse
+
+    # Nonlinear NSE, so using Newton iteration
+    F_act = action(F, w1) 
+    dF = derivative(F_act, w1)
+    nse_problem = NonlinearVariationalProblem(F_act, w1, bcs, dF) # will update w1 values every time we call solver.solve()
+    nse_solver = NonlinearVariationalSolver(nse_problem)
+    nse_prm = nse_solver.parameters
+    nse_prm["nonlinear_solver"] = "newton"
+    nse_prm["newton_solver"]["linear_solver"] = "mumps" # utilizes parallel processors
+
+    # Pressure transport equation
+    ap = (p + l1*dot(grad(p), u1)) * r * dx 
+    Lp = pi1 * r * dx 
+    
+    p1 = Function(P)
+    p_problem = LinearVariationalProblem(ap, Lp, p1) # will update p1 values every time we call solver.solve()
+    p_solver = LinearVariationalSolver(p_problem)
+
+    
+    # Stress transport equation/Constitutive equation
+    aT = inner( tau + l1*(dot(grad(tau),u1) + dot(-skew(grad(u1)), tau) - dot(tau, -skew(grad(u1)))) \
+                        - mu1*(dot(sym(grad(u1)), tau) + dot(tau, sym(grad(u1)))) , S)*dx
+    LT = 2.0*eta*inner(sym(grad(u1)), S)*dx
+
+    T_problem = LinearVariationalProblem(aT, LT, T1) # will update p1 values every time we call solver.solve()
+    T_solver = LinearVariationalSolver(T_problem)
+    T_prm = T_solver.parameters
+    T_prm["linear_solver"] = "mumps"
+
+    # Begin SRTD iteration
+    n=1
+    l2diff = 1.0
+    residuals = {} # empty dict to save residual value after each iteration 
+    min_residual = 1.0
+    while(n<=max_iter and min_residual > tol):
+        nse_solver.solve() # updates w1
+
+        u_next, pi_next = w1.split(deepcopy=True) 
+        assign(u1, u_next) # u1 updated
+        assign(pi1, pi_next) # pi1 updated
+
+        p_solver.solve() # p1 updated
+
+        T_solver.solve() # T1 updated
+
+        # End of this SRTD iteration
+        l2diff = errornorm(u1, u0, norm_type='l2', degree_rise=0)
+        residuals[n] = l2diff
+        if(l2diff <= min_residual):
+            min_residual = l2diff
+            u_return = u1
+            pi_return = pi1
+            p_return = p1
+            T_return = T1
+        
+        print("SRTD Iteration %d: r = %.4e (tol = %.3e)" % (n, l2diff, tol))
+        n = n+1
+
+        #update u0, p0, T0
+        assign(u0, u1)
+        assign(p0, p1)
+        assign(T0, T1)
+
+    # Stuff to do after the iterations are over
+    if(min_residual <= tol):
+        converged = True
+    else:
+        converged = False
+    return Results(converged, u_return, pi_return, p_return, T_return, residuals)
+
+
 #post proc stuff here
 
 
