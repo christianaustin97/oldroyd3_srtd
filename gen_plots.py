@@ -27,7 +27,7 @@ max_srtd_iters = 20
 srtd_tol = 1e-9
 
 # LDC
-h = 2.5e-2
+h = 1.25e-2
 nx = round(1/h)
 
 filename = "lid_driven_cavity_h_%.4e"%h
@@ -47,8 +47,6 @@ infile.close()"""
 
 mesh = UnitSquareMesh(nx, nx)
 print("Num el of non crossed: %d"%mesh.num_cells())
-mesh = UnitSquareMesh(nx, nx, "crossed")
-print("Num el of crossed: %d"%mesh.num_cells())
 
 input("press any key ...")
 

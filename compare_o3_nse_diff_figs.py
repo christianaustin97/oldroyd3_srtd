@@ -19,16 +19,9 @@ h = 0.025
 
 
 meshfile = "meshdata/lid_driven_cavity_h_%.4e.h5"%h
-    
-if not os.path.exists(meshfile):
-    print("Creating mesh...")
-    gen_mesh_ldc.main(h)
 
-#then, simply read the mesh in 
-mesh = Mesh() #empty mesh
-infile = HDF5File(MPI.comm_world, meshfile, 'r')
-infile.read(mesh, '/mesh', True) #for some reason, need this flag to import a mesh?
-infile.close()
+nx = round(1/h)
+mesh = UnitSquareMesh(nx, nx)
 print("Mesh loaded into FEniCS")
 
 P_elem = FiniteElement("CG", triangle, 1) #pressure and auxiliary pressure, degree 1 elements

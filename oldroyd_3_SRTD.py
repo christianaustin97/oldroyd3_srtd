@@ -28,13 +28,14 @@ from meshdata import gen_mesh_ldc
 import os
 
 class Results:
-    def __init__(self, converged, velocity, aux_pressure, pressure, stress_tensor, residuals):
+    def __init__(self, converged, velocity, aux_pressure, pressure, stress_tensor, residuals, Newton_iters):
         self.converged = converged
         self.velocity = velocity
         self.aux_pressure = aux_pressure
         self.pressure = pressure
         self.stress_tensor = stress_tensor
         self.residuals = residuals
+        self.Newton_iters = Newton_iters
 
 
 # Journal Bearing Problem
@@ -189,10 +190,15 @@ def oldroyd_3_JB_SRTD(h, rad, ecc, s, eta, l1, mu1, max_iter, tol):
     n=1
     l2diff = 1.0
     residuals = {} # empty dict to save residual value after each iteration 
+    Newton_iters = {}
     min_residual = 1.0
     while(n<=max_iter and min_residual > tol):
-        nse_solver.solve() # updates w1
-
+        try: 
+            (Newton_iters[n], converged) = nse_solver.solve() # updates w1
+        except: 
+            print("Newton Method in the Navier-Stokes-like stage failed to converge")
+            return Results(False, u_return, pi_return, p_return, T_return, residuals, Newton_iters)
+        
         u_next, pi_next = w1.split(deepcopy=True)
         assign(u1, u_next) # u1 updated
         assign(pi1, pi_next) # pi1 updated
@@ -224,7 +230,7 @@ def oldroyd_3_JB_SRTD(h, rad, ecc, s, eta, l1, mu1, max_iter, tol):
         converged = True
     else:
         converged = False
-    return Results(converged, u_return, pi_return, p_return, T_return, residuals)
+    return Results(converged, u_return, pi_return, p_return, T_return, residuals, Newton_iters)
 
 
 # Lid-Driven Cavity Problem
@@ -353,10 +359,15 @@ def oldroyd_3_LDC_SRTD(h, s, eta, l1, mu1, max_iter, tol):
     n=1
     l2diff = 1.0
     residuals = {} # empty dict to save residual value after each iteration 
+    Newton_iters = {}
     min_residual = 1.0
     while(n<=max_iter and min_residual > tol):
-        nse_solver.solve() # updates w1
-
+        try: 
+            (Newton_iters[n], converged) = nse_solver.solve() # updates w1
+        except: 
+            print("Newton Method in the Navier-Stokes-like stage failed to converge")
+            return Results(False, u_return, pi_return, p_return, T_return, residuals, Newton_iters)
+        
         u_next, pi_next = w1.split(deepcopy=True)
         assign(u1, u_next) # u1 updated
         assign(pi1, pi_next) # pi1 updated
@@ -388,7 +399,7 @@ def oldroyd_3_LDC_SRTD(h, s, eta, l1, mu1, max_iter, tol):
         converged = True
     else:
         converged = False
-    return Results(converged, u_return, pi_return, p_return, T_return, residuals)
+    return Results(converged, u_return, pi_return, p_return, T_return, residuals, Newton_iters)
 
      
 def oldroyd_3_LDC3D_SRTD(h, s, eta, l1, mu1, max_iter, tol):
@@ -513,9 +524,16 @@ def oldroyd_3_LDC3D_SRTD(h, s, eta, l1, mu1, max_iter, tol):
     n=1
     l2diff = 1.0
     residuals = {} # empty dict to save residual value after each iteration 
+    Newton_iters = {}
     min_residual = 1.0
     while(n<=max_iter and min_residual > tol):
-        nse_solver.solve() # updates w1
+
+        try: 
+            (Newton_iters[n], converged) = nse_solver.solve() # updates w1
+        except: 
+            print("Newton Method in the Navier-Stokes-like stage failed to converge")
+            return Results(False, u_return, pi_return, p_return, T_return, residuals, Newton_iters)
+        
 
         u_next, pi_next = w1.split(deepcopy=True) 
         assign(u1, u_next) # u1 updated
@@ -548,7 +566,7 @@ def oldroyd_3_LDC3D_SRTD(h, s, eta, l1, mu1, max_iter, tol):
         converged = True
     else:
         converged = False
-    return Results(converged, u_return, pi_return, p_return, T_return, residuals)
+    return Results(converged, u_return, pi_return, p_return, T_return, residuals, Newton_iters)
 
 
 #post proc stuff here
