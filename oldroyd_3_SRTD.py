@@ -24,7 +24,7 @@
 
 from fenics import *
 from meshdata import gen_mesh_jb
-from meshdata import gen_mesh_ldc
+#from meshdata import gen_mesh_ldc
 import os
 
 class Results:

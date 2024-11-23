@@ -1,7 +1,7 @@
 from fenics import *
 import ufl
 import oldroyd_3_SRTD 
-import pointer_test_oldroyd3
+import ZZZ_pointer_test_oldroyd3
 
 import os
 import sys
@@ -32,7 +32,7 @@ end_solve_original = time.time()
 original_time = end_solve_original - start_solve_original
 
 start_solve_pointer = time.time()
-pointer_soln = pointer_test_oldroyd3.oldroyd_3_JB_SRTD(h, rad, ecc, speed, eta, lambda1, mu1, max_srtd_iters, srtd_tol)
+pointer_soln = ZZZ_pointer_test_oldroyd3.oldroyd_3_JB_SRTD(h, rad, ecc, speed, eta, lambda1, mu1, max_srtd_iters, srtd_tol)
 end_solve_pointer = time.time()
 pointer_time = end_solve_pointer - start_solve_pointer
 
