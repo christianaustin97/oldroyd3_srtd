@@ -7,91 +7,20 @@
 #   a=0 : corotational maxwell
 #   a=-1: lcm
 
-# Wi = 1e-2: s=1.0, l1=1e-2
-python3 mesh_ref_ldc_evss.py 1.0 1.0 1e-2 1.0  
+# UCM, l1=0.1
+python3 mesh_ref_ldc_evss.py 1.0 1.0 1e-1 1.0  
+
+# UCM, l1=0.01
 python3 mesh_ref_ldc_srtd.py 1.0 1.0 1e-2 1.0  
-python3 mesh_ref_ldc_srtd_supg.py 1.0 1.0 1e-2 1.0  
-# Wi = 1e-2 : s=0.5, l1 = 2e-2
-python3 mesh_ref_ldc_evss.py 0.5 1.0 2e-2 1.0  
-python3 mesh_ref_ldc_srtd.py 0.5 1.0 2e-2 1.0  
-python3 mesh_ref_ldc_srtd_supg.py 0.5 1.0 2e-2 1.0  
-# Wi = 1e-2 : s=0.25, l1 = 4e-2
-python3 mesh_ref_ldc_evss.py 0.25 1.0 4e-2 1.0  
-python3 mesh_ref_ldc_srtd.py 0.25 1.0 4e-2 1.0  
-python3 mesh_ref_ldc_srtd_supg.py 0.25 1.0 4e-2 1.0  
 
-# Wi = 2e-2 : s=2, l1=1e-2
-python3 mesh_ref_ldc_evss.py 2.0 1.0 1e-2 1.0  
-python3 mesh_ref_ldc_srtd.py 2.0 1.0 1e-2 1.0  
-python3 mesh_ref_ldc_srtd_supg.py 2.0 1.0 1e-2 1.0  
-
-# Wi = 2e-2 : s=1, l1=2e-2
-python3 mesh_ref_ldc_evss.py 1.0 1.0 2e-2 1.0  
-python3 mesh_ref_ldc_srtd.py 1.0 1.0 2e-2 1.0  
-python3 mesh_ref_ldc_srtd_supg.py 1.0 1.0 2e-2 1.0  
+# 3D LDC SRTD, UCM, l1=0.01
+#python3 mesh_ref_ldc3d_srtd.py 1.0 1.0 1e-2 1.0  
 
 
-# Wi = 4e-2 : s=2, l1=2e-2
-python3 mesh_ref_ldc_evss.py 2.0 1.0 2e-2 1.0  
-python3 mesh_ref_ldc_srtd.py 2.0 1.0 2e-2 1.0  
-python3 mesh_ref_ldc_srtd_supg.py 2.0 1.0 2e-2 1.0  
+# Closer to Wi limit
+python3 mesh_ref_ldc_evss.py 1.0 1.0 1.5e-1 1.0 
+python3 mesh_ref_ldc_evss.py 1.0 1.0 2e-1 1.0 
+python3 mesh_ref_ldc_evss.py 1.0 1.0 2.5e-1 1.0 
 
-# Wi = 4e-2 : s=4, l1=1e-2
-python3 mesh_ref_ldc_evss.py 4.0 1.0 1e-2 1.0  
-python3 mesh_ref_ldc_srtd.py 4.0 1.0 1e-2 1.0  
-python3 mesh_ref_ldc_srtd_supg.py 4.0 1.0 1e-2 1.0  
-
-# Wi = 4e-2 : s=1, l1=4e-2
-python3 mesh_ref_ldc_evss.py 1.0 1.0 4e-2 1.0  
-python3 mesh_ref_ldc_srtd.py 1.0 1.0 4e-2 1.0  
-python3 mesh_ref_ldc_srtd_supg.py 1.0 1.0 4e-2 1.0  
-
-
-#SRTD appears to break down around here lol, Wi=0.08. EVSS works fine
-# Wi = 8e-2 : s=4, l1=2e-2
-python3 mesh_ref_ldc_evss.py 4.0 1.0 2e-2 1.0  
-python3 mesh_ref_ldc_srtd.py 4.0 1.0 2e-2 1.0  
-python3 mesh_ref_ldc_srtd_supg.py 4.0 1.0 2e-2 1.0  
-# Wi = 8e-2 : s=2, l1=4e-2
-python3 mesh_ref_ldc_evss.py 2.0 1.0 4e-2 1.0  
-python3 mesh_ref_ldc_srtd.py 2.0 1.0 4e-2 1.0  
-python3 mesh_ref_ldc_srtd_supg.py 2.0 1.0 4e-2 1.0  
-# Wi = 8e-2 : s=1, l1=8e-2
-python3 mesh_ref_ldc_evss.py 1.0 1.0 8e-2 1.0  
-python3 mesh_ref_ldc_srtd.py 1.0 1.0 8e-2 1.0  
-python3 mesh_ref_ldc_srtd_supg.py 1.0 1.0 8e-2 1.0  
-# Wi = 8e-2 : s=8, l1=1e-2
-python3 mesh_ref_ldc_evss.py 8.0 1.0 1e-2 1.0  
-python3 mesh_ref_ldc_srtd.py 8.0 1.0 1e-2 1.0  
-python3 mesh_ref_ldc_srtd_supg.py 8.0 1.0 1e-2 1.0  
-
-
-# Wi = 1.6e-1 : s=2, l1=8e-2
-python3 mesh_ref_ldc_evss.py 2.0 1.0 8e-2 1.0  
-python3 mesh_ref_ldc_srtd.py 2.0 1.0 8e-2 1.0  
-python3 mesh_ref_ldc_srtd_supg.py 2.0 1.0 8e-2 1.0  
-# Wi = 1.6e-1 : s=4, l1=4e-2
-python3 mesh_ref_ldc_evss.py 4.0 1.0 4e-2 1.0  
-python3 mesh_ref_ldc_srtd.py 4.0 1.0 4e-2 1.0  
-python3 mesh_ref_ldc_srtd_supg.py 4.0 1.0 4e-2 1.0  
-# Wi = 1.6e-1 : s=8, l1=2e-2
-python3 mesh_ref_ldc_evss.py 8.0 1.0 2e-2 1.0  
-python3 mesh_ref_ldc_srtd.py 8.0 1.0 2e-2 1.0  
-python3 mesh_ref_ldc_srtd_supg.py 8.0 1.0 2e-2 1.0  
-
-
-# Wi = 3.2e-1 : s=4, l1=8e-2
-python3 mesh_ref_ldc_evss.py 4.0 1.0 8e-2 1.0
-python3 mesh_ref_ldc_srtd.py 4.0 1.0 8e-2 1.0
-python3 mesh_ref_ldc_srtd_supg.py 4.0 1.0 8e-2 1.0
-# Wi = 3.2e-1 : s=8, l1=4e-2
-python3 mesh_ref_ldc_evss.py 8.0 1.0 4e-2 1.0
-python3 mesh_ref_ldc_srtd.py 8.0 1.0 4e-2 1.0
-python3 mesh_ref_ldc_srtd_supg.py 8.0 1.0 4e-2 1.0
-
-# Wi = 6.4e-1 : s=4, l1=1.6e-1
-python3 mesh_ref_ldc_evss.py 4.0 1.0 1.6e-1 1.0
-# Wi = 6.4e-1 : s=8, l1=8e-2
-python3 mesh_ref_ldc_evss.py 8.0 1.0 8e-2 1.0
-# Wi = 6.4e-1 : s=16, l1=4e-2
-python3 mesh_ref_ldc_evss.py 16.0 1.0 4e-2 1.0
+python3 mesh_ref_ldc_srtd.py 1.0 1.0 5.5e-2 1.0 
+python3 mesh_ref_ldc_srtd.py 1.0 1.0 6e-2 1.0 

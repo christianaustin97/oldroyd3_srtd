@@ -58,6 +58,7 @@ h_array = 0.1 * (2 ** h_array)
 table_file = open('results_ldc_' + model + '/mesh_ref_ldc_Wi=%.3e_s=%.3e_l1=%.3e_'%(Wi, speed, lambda1) + model + '_evss.csv', 'w') 
 writer = csv.writer(table_file)
 writer.writerow(['h','elements','$L^{2}$ error $\\vu$','$L^{2}$ rate $\\vu$', '$H^{1}$ error $\\vu$', '$H^{1}$ rate $\\vu$', '$L^{2}$ error $p$', '$L^{2}$ rate $p$','time(s)'])
+table_file.flush() # write to CSV without closing
 
 # Placeholder values for previous errors and functions
 l2_diff_prev = 1.0 
@@ -117,6 +118,7 @@ for h in h_array:
     # save data
     csv_str = ['%.3e'%h, num_els, '%.3e'%l2_diff, "%.3f"%l2_rate,'%.3e'%h1_diff, "%.3f"%h1_rate, '%.3e'%l2_p_diff, "%.3f"%l2_p_rate, "%.3f"%solve_time]
     writer.writerow(csv_str)
+    table_file.flush() # write to CSV without closing
 
     # update for next refinement/iteration
     u_prev = u
