@@ -83,6 +83,7 @@ for i in range(len(l1vals_ldc)):
 
     # LDC solutions
     o3_ldc_soln = oldroyd_3_LDC_SRTD(h, s, eta, l1, mu1, max_srtd_iters, srtd_tol)
+    #o3_ldc_soln = oldroyd_3_LDC_EVSS(h, s, eta, l1, mu1)
     nse_ldc_soln = navier_stokes_LDC(h, s, eta)
 
     ldc_l2_diff = errornorm(o3_ldc_soln.velocity, nse_ldc_soln.velocity, 'l2')
@@ -101,6 +102,7 @@ for i in range(len(l1vals_jb)):
 
     # JB solutions
     o3_jb_soln = oldroyd_3_JB_SRTD(h_jb, rad, ecc, s, eta, l1, mu1, max_srtd_iters, srtd_tol)
+    #o3_jb_soln = oldroyd_3_JB_EVSS(h_jb, rad, ecc, s, eta, l1, mu1)
     nse_jb_soln = navier_stokes_JB(h_jb, rad, ecc, s, eta)
 
     jb_l2_diff = errornorm(o3_jb_soln.velocity, nse_jb_soln.velocity, 'l2')
