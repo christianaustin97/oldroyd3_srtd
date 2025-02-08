@@ -30,12 +30,14 @@ if len(sys.argv) > 1:
     eta = float(sys.argv[2])
     lambda1 = float(sys.argv[3])
     a = float(sys.argv[4])
+    n = float(sys.argv[5])
 else:
     # physical default parameters
     speed = 1.0
     eta = 1.0
     lambda1 = 1e-2
     a = 1.0
+    n=4
 
 mu1 = a*lambda1
 if a == 1.0:
@@ -55,13 +57,14 @@ max_srtd_iters = 20
 srtd_tol = 1e-9
 
 # meshsize for mesh refinement experiment
-h_array = np.array([1.0/4, 1.0/8, 1.0/16]) 
+h=1/n
+h_array = np.array([h, h/2, h/4]) 
 
 # For saving the info
 ############# CHANGE THIS FOR DIFFERENT METHODS ##############
 table_file = open('results_ldc3d_' + model + '/mesh_ref_ldc3d_Wi=%.3e_s=%.3e_l1=%.3e_'%(Wi, speed, lambda1) + model + '_srtd.csv', 'w') 
 writer = csv.writer(table_file)
-writer.writerow(['h','elements','$L^{2}$ error $\\vu$','$L^{2}$ rate $\\vu$', '$H^{1}$ error $\\vu$', '$H^{1}$ rate $\\vu$', '$L^{2}$ error $p$', '$L^{2}$ rate $p$','time(s)'])
+writer.writerow(['h','elements', 'u_dof', 'p_dof','$L^{2}$ error $\\vu$','$L^{2}$ rate $\\vu$', '$H^{1}$ error $\\vu$', '$H^{1}$ rate $\\vu$', '$L^{2}$ error $p$', '$L^{2}$ rate $p$','time(s)'])
 table_file.flush() # write to CSV without closing
 
 # Placeholder values for previous errors and functions
@@ -97,6 +100,9 @@ for h in h_array:
     V = FunctionSpace(mesh, V_elem)
     P = FunctionSpace(mesh, P_elem)
 
+    u_dof = V.dim()
+    p_dof = P.dim()
+
     # Interpolate previous solutions onto current mesh
     u_prev = interpolate(u_prev, V) 
     p_prev = interpolate(p_prev, P)
@@ -120,7 +126,7 @@ for h in h_array:
     l2_p_rate = log2(l2_p_diff_prev / l2_p_diff)
 
     # save data
-    csv_str = ['%.3e'%h, num_els, '%.3e'%l2_diff, "%.3f"%l2_rate,'%.3e'%h1_diff, "%.3f"%h1_rate, '%.3e'%l2_p_diff, "%.3f"%l2_p_rate, "%.3f"%solve_time]
+    csv_str = ['%.3e'%h, num_els, u_dof, p_dof, '%.3e'%l2_diff, "%.3f"%l2_rate,'%.3e'%h1_diff, "%.3f"%h1_rate, '%.3e'%l2_p_diff, "%.3f"%l2_p_rate, "%.3f"%solve_time]
     writer.writerow(csv_str)
     table_file.flush() # write to CSV without closing
 

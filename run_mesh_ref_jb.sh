@@ -31,7 +31,7 @@ python3 mesh_ref_jb_evss.py 1.0 1.0 1.0 1.0
 # EVSS Corot
 python3 mesh_ref_jb_evss.py 1.0 1.0 1e-2 0.0
 python3 mesh_ref_jb_evss.py 1.0 1.0 5e-2 0.0
-python3 mesh_ref_jb_evss.py 1.0 1.0 8e-2 1.0
+python3 mesh_ref_jb_evss.py 1.0 1.0 8e-2 0.0
 python3 mesh_ref_jb_evss.py 1.0 1.0 1e-1 0.0
 
 
