@@ -87,15 +87,15 @@ def oldroyd_3_JB_SRTD(h, rad, ecc, s, eta, l1, mu1, max_iter, tol):
     f = Constant((0.0, 0.0)) # no body forces
     
     # Element spaces
-    P_elem = FiniteElement("CG", triangle, 1) #pressure and auxiliary pressure, degree 1 elements
-    V_elem = VectorElement("CG", triangle, 2) #velocity, degree 2 elements
-    T_elem = TensorElement("CG", triangle, 2, symmetry=True) #stress tensor, degree 2 elements 
+    P_elem = FiniteElement("CG", triangle, 1) # Pressure and auxiliary pressure, degree 1 elements
+    V_elem = VectorElement("CG", triangle, 2) # Velocity, degree 2 elements
+    T_elem = VectorElement("CG", triangle, 2, dim=3) # Stress tensor has 3 independent components
     
     W_elem = MixedElement([V_elem, P_elem]) # Mixed/Taylor Hood element space for Navier-Stokes type equations
 
     W = FunctionSpace(mesh, W_elem) # Taylor-Hood/mixed space
     P = FunctionSpace(mesh, P_elem) # true pressure space
-    V = FunctionSpace(mesh, V_elem) # velocity space (not used)
+    V = FunctionSpace(mesh, V_elem) # velocity space 
     T = FunctionSpace(mesh, T_elem) # tensor space
     
     # Interpolate body force and BCs onto velocity FE space
@@ -117,31 +117,35 @@ def oldroyd_3_JB_SRTD(h, rad, ecc, s, eta, l1, mu1, max_iter, tol):
     w = TrialFunction(W) # our NS-like TrialFunction
     (u,pi) = split(w) # trial functions, representing u1, pi1
     p = TrialFunction(P) # true pressure trial function for auxiliary pressure equation, representing p1
-    tau = TrialFunction(T) # stress trial function for stress tensor equation, representing T1
+    tau_vec = TrialFunction(T) # stress trial function for stress tensor equation, representing T1
+    tau = as_tensor([[tau_vec[0], tau_vec[1]], [tau_vec[1], tau_vec[2]]])
 
     # Weak form test functions. Also think of these as symbolic, and they are only used in defining the weak forms
     (v, q) = TestFunctions(W) # test functions for NSE step
     r = TestFunction(P) # test functions for pressure transport
-    S = TestFunction(T) # test functions for constitutive equation
+    S_vec = TestFunction(T) # test functions for constitutive equation
+    S = as_tensor([[S_vec[0], S_vec[1]], [S_vec[1], S_vec[2]]])
 
     # previous and next iterations. Symbolic when they are used in the weak forms, or pointers to the actual function values 
     #w0 = Function(W)
     u0 = Function(V)    
     #pi0 = Function(P)
     p0 = Function(P)
-    T0 = Function(T)
+    T0_vec = Function(T)
+    T0 = as_tensor([[T0_vec[0], T0_vec[1]], [T0_vec[1], T0_vec[2]]])
 
     w1 = Function(W)
     u1 = Function(V)
     pi1 = Function(P)
     p1 = Function(P)
-    T1 = Function(T)
-
-    # Functions we'll actually return
+    T1_vec = Function(T)
+    
+    # Functions we'll actually return,
     u_return = Function(V)
     pi_return = Function(P)
     p_return = Function(P)
-    T_return = Function(T)
+    T_return_vec = Function(T)
+    T_return = as_tensor([[T_return_vec[0], T_return_vec[1]], [T_return_vec[1], T_return_vec[2]]])
 
     #LHS of NS-like solve, a((u,pi), (v,q)) 
     a_nse = eta*inner(grad(u), grad(v))*dx + dot( dot(grad(u),u), v)*dx - (pi*div(v))*dx + q*div(u)*dx
@@ -181,7 +185,7 @@ def oldroyd_3_JB_SRTD(h, rad, ecc, s, eta, l1, mu1, max_iter, tol):
                         - mu1*(dot(sym(grad(u1)), tau) + dot(tau, sym(grad(u1)))) , S)*dx
     LT = 2.0*eta*inner(sym(grad(u1)), S)*dx
 
-    T_problem = LinearVariationalProblem(aT, LT, T1) # will update p1 values every time we call solver.solve()
+    T_problem = LinearVariationalProblem(aT, LT, T1_vec) # will update T1_vec values every time we call solver.solve()
     T_solver = LinearVariationalSolver(T_problem)
     T_prm = T_solver.parameters
     T_prm["linear_solver"] = "mumps"
@@ -205,7 +209,8 @@ def oldroyd_3_JB_SRTD(h, rad, ecc, s, eta, l1, mu1, max_iter, tol):
 
         p_solver.solve() # p1 updated
 
-        T_solver.solve() # T1 updated
+        T_solver.solve() # T1_vec updated
+        T1 = as_tensor([[T1_vec[0], T1_vec[1]], [T1_vec[1], T1_vec[2]]]) # reshape to appropriate 
 
         # End of this SRTD iteration
         l2diff = errornorm(u1, u0, norm_type='l2', degree_rise=0)
@@ -223,7 +228,7 @@ def oldroyd_3_JB_SRTD(h, rad, ecc, s, eta, l1, mu1, max_iter, tol):
         #update u0, p0, T0
         assign(u0, u1)
         assign(p0, p1)
-        assign(T0, T1)    
+        assign(T0_vec, T1_vec) # can't assign T1 to T0 as a tensor, unfortunately
         
     # Stuff to do after the iterations are over
     if(min_residual <= tol):
@@ -253,7 +258,7 @@ def oldroyd_3_LDC_SRTD(h, s, eta, l1, mu1, max_iter, tol):
     # Element spaces
     P_elem = FiniteElement("CG", triangle, 1) #pressure and auxiliary pressure, degree 1 elements
     V_elem = VectorElement("CG", triangle, 2) #velocity, degree 2 elements
-    T_elem = TensorElement("CG", triangle, 2, symmetry=True) #stress tensor, degree 2 elements 
+    T_elem = VectorElement("CG", triangle, 2, dim=3) #stress tensor, degree 2 elements 
     
     W_elem = MixedElement([V_elem, P_elem]) # Mixed/Taylor Hood element space for Navier-Stokes type equations
 
@@ -285,31 +290,35 @@ def oldroyd_3_LDC_SRTD(h, s, eta, l1, mu1, max_iter, tol):
     w = TrialFunction(W) # our NS-like TrialFunction
     (u,pi) = split(w) # trial functions, representing u1, pi1
     p = TrialFunction(P) # true pressure trial function for auxiliary pressure equation, representing p1
-    tau = TrialFunction(T) # stress trial function for stress tensor equation, representing T1
+    tau_vec = TrialFunction(T) # stress trial function for stress tensor equation, representing T1
+    tau = as_tensor([[tau_vec[0], tau_vec[1]], [tau_vec[1], tau_vec[2]]])
 
     # Weak form test functions. Also think of these as symbolic, and they are only used in defining the weak forms
     (v, q) = TestFunctions(W) # test functions for NSE step
     r = TestFunction(P) # test functions for pressure transport
-    S = TestFunction(T) # test functions for constitutive equation
+    S_vec = TestFunction(T) # test functions for constitutive equation
+    S = as_tensor([[S_vec[0], S_vec[1]], [S_vec[1], S_vec[2]]])
 
     # previous and next iterations. Symbolic when they are used in the weak forms, or pointers to the actual function values 
     #w0 = Function(W)
     u0 = Function(V)    
     #pi0 = Function(P)
     p0 = Function(P)
-    T0 = Function(T)
+    T0_vec = Function(T)
+    T0 = as_tensor([[T0_vec[0], T0_vec[1]], [T0_vec[1], T0_vec[2]]])
 
     w1 = Function(W)
     u1 = Function(V)
     pi1 = Function(P)
     p1 = Function(P)
-    T1 = Function(T)
+    T1_vec = Function(T)
 
     # Functions we'll actually return
     u_return = Function(V)
     pi_return = Function(P)
     p_return = Function(P)
-    T_return = Function(T)
+    T_return_vec = Function(T)
+    T_return = as_tensor([[T_return_vec[0], T_return_vec[1]], [T_return_vec[1], T_return_vec[2]]])
 
 
     #LHS of NS-like solve, a((u,pi), (v,q)) 
@@ -350,7 +359,7 @@ def oldroyd_3_LDC_SRTD(h, s, eta, l1, mu1, max_iter, tol):
                         - mu1*(dot(sym(grad(u1)), tau) + dot(tau, sym(grad(u1)))) , S)*dx
     LT = 2.0*eta*inner(sym(grad(u1)), S)*dx
 
-    T_problem = LinearVariationalProblem(aT, LT, T1) # will update p1 values every time we call solver.solve()
+    T_problem = LinearVariationalProblem(aT, LT, T1_vec) # will update T1_vec values every time we call solver.solve()
     T_solver = LinearVariationalSolver(T_problem)
     T_prm = T_solver.parameters
     T_prm["linear_solver"] = "mumps"
@@ -375,6 +384,7 @@ def oldroyd_3_LDC_SRTD(h, s, eta, l1, mu1, max_iter, tol):
         p_solver.solve() # p1 updated
 
         T_solver.solve() # T1 updated
+        T1 = as_tensor([[T1_vec[0], T1_vec[1]], [T1_vec[1], T1_vec[2]]]) # reshape to appropriate 
 
         # End of this SRTD iteration
         l2diff = errornorm(u1, u0, norm_type='l2', degree_rise=0)
@@ -392,7 +402,7 @@ def oldroyd_3_LDC_SRTD(h, s, eta, l1, mu1, max_iter, tol):
         #update u0, p0, T0
         assign(u0, u1)
         assign(p0, p1)
-        assign(T0, T1)    
+        assign(T0_vec, T1_vec)    
         
     # Stuff to do after the iterations are over
     if(min_residual <= tol):
@@ -418,7 +428,7 @@ def oldroyd_3_LDC3D_SRTD(h, s, eta, l1, mu1, max_iter, tol):
     # Element spaces
     P_elem = FiniteElement("CG", tetrahedron, 1) #pressure and auxiliary pressure, degree 1 elements
     V_elem = VectorElement("CG", tetrahedron, 2) #velocity, degree 2 elements
-    T_elem = TensorElement("CG", tetrahedron, 2, symmetry=True) #stress tensor, degree 2 elements 
+    T_elem = VectorElement("CG", tetrahedron, 2, dim=6) #stress tensor, degree 2 elements 
     
     W_elem = MixedElement([V_elem, P_elem]) # Mixed/Taylor Hood element space for Navier-Stokes type equations
 
@@ -450,31 +460,43 @@ def oldroyd_3_LDC3D_SRTD(h, s, eta, l1, mu1, max_iter, tol):
     w = TrialFunction(W) # our NS-like TrialFunction
     (u,pi) = split(w) # trial functions, representing u1, pi1
     p = TrialFunction(P) # true pressure trial function for auxiliary pressure equation, representing p1
-    tau = TrialFunction(T) # stress trial function for stress tensor equation, representing T1
+    tau_vec = TrialFunction(T) # stress trial function for stress tensor equation, representing T1
+    tau = as_tensor([[tau_vec[0], tau_vec[1], tau_vec[2]], \
+                     [tau_vec[1], tau_vec[3], tau_vec[4]], \
+                     [tau_vec[2], tau_vec[4], tau_vec[5]]])
 
     # Weak form test functions. Also think of these as symbolic, and they are only used in defining the weak forms
     (v, q) = TestFunctions(W) # test functions for NSE step
     r = TestFunction(P) # test functions for pressure transport
-    S = TestFunction(T) # test functions for constitutive equation
+    S_vec = TestFunction(T) # test functions for constitutive equation
+    S = as_tensor([[S_vec[0], S_vec[1], S_vec[2]], \
+                   [S_vec[1], S_vec[3], S_vec[4]], \
+                   [S_vec[2], S_vec[4], S_vec[5]]])
 
     # previous and next iterations. Symbolic when they are used in the weak forms, or pointers to the actual function values 
     #w0 = Function(W)
     u0 = Function(V)    
     #pi0 = Function(P)
     p0 = Function(P)
-    T0 = Function(T)
+    T0_vec = Function(T)
+    T0 = as_tensor([[T0_vec[0], T0_vec[1], T0_vec[2]], \
+                    [T0_vec[1], T0_vec[3], T0_vec[4]], \
+                    [T0_vec[2], T0_vec[4], T0_vec[5]]])
 
     w1 = Function(W)
     u1 = Function(V)
     pi1 = Function(P)
     p1 = Function(P)
-    T1 = Function(T)
+    T1_vec = Function(T)
 
     # Functions we'll actually return
     u_return = Function(V)
     pi_return = Function(P)
     p_return = Function(P)
-    T_return = Function(T)
+    T_return_vec = Function(T)
+    T_return = as_tensor([[T_return_vec[0], T_return_vec[1], T_return_vec[2]], \
+                          [T_return_vec[1], T_return_vec[3], T_return_vec[4]], \
+                          [T_return_vec[2], T_return_vec[4], T_return_vec[5]]])
 
 
     #LHS of NS-like solve, a((u,pi), (v,q)) 
@@ -515,7 +537,7 @@ def oldroyd_3_LDC3D_SRTD(h, s, eta, l1, mu1, max_iter, tol):
                         - mu1*(dot(sym(grad(u1)), tau) + dot(tau, sym(grad(u1)))) , S)*dx
     LT = 2.0*eta*inner(sym(grad(u1)), S)*dx
 
-    T_problem = LinearVariationalProblem(aT, LT, T1) # will update p1 values every time we call solver.solve()
+    T_problem = LinearVariationalProblem(aT, LT, T1_vec) # will update T1_vec values every time we call solver.solve()
     T_solver = LinearVariationalSolver(T_problem)
     T_prm = T_solver.parameters
     T_prm["linear_solver"] = "mumps"
@@ -541,7 +563,10 @@ def oldroyd_3_LDC3D_SRTD(h, s, eta, l1, mu1, max_iter, tol):
 
         p_solver.solve() # p1 updated
 
-        T_solver.solve() # T1 updated
+        T_solver.solve() # T1_vec updated
+        T1 = as_tensor([[T1_vec[0], T1_vec[1], T1_vec[2]], \
+                        [T1_vec[1], T1_vec[3], T1_vec[4]], \
+                        [T1_vec[2], T1_vec[4], T1_vec[5]]])
 
         # End of this SRTD iteration
         l2diff = errornorm(u1, u0, norm_type='l2', degree_rise=0)
@@ -559,7 +584,7 @@ def oldroyd_3_LDC3D_SRTD(h, s, eta, l1, mu1, max_iter, tol):
         #update u0, p0, T0
         assign(u0, u1)
         assign(p0, p1)
-        assign(T0, T1)
+        assign(T0_vec, T1_vec)
 
     # Stuff to do after the iterations are over
     if(min_residual <= tol):

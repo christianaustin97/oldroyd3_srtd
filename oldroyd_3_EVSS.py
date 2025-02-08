@@ -45,6 +45,8 @@ class Results:
 def oldroyd_3_JB_EVSS(h, rad, ecc, s, eta, l1, mu1):
     # s is the tangential speed of the bearing 
 
+    print("def called without modified NSE D")
+
     if(rad>=1 or rad<=0 or ecc<0 or rad+ecc>1):
         #throw exception, forgot how lol
         print("Error: Inputs not valid")
@@ -88,7 +90,7 @@ def oldroyd_3_JB_EVSS(h, rad, ecc, s, eta, l1, mu1):
     # Element spaces
     V_elem = VectorElement("CG", triangle, 2) # Velocity, degree 2 elements
     P_elem = FiniteElement("CG", triangle, 1) # Pressure, degree 1 elements
-    T_elem = TensorElement("CG", triangle, 2, symmetry=True) # "Stress" tensor (actually Sigma), degree 2 elements
+    T_elem = VectorElement("CG", triangle, 2, dim=3) # "Stress" tensor (actually Sigma), degree 2 elements
     D_elem = VectorElement("CG", triangle, 1) # Deformation tensor, defined as VectorElement to exploit symmetry
 
     W_elem = MixedElement([V_elem, P_elem, T_elem, D_elem]) # Mixed element (u, p, T, D)
@@ -115,10 +117,12 @@ def oldroyd_3_JB_EVSS(h, rad, ecc, s, eta, l1, mu1):
     
     # Variational Problem: Trial and Test Functions
     w = TrialFunction(W) 
-    (u, p, Tau, D_vec) = split(w) #trial/solution functions
-    (v, q, S, Phi_vec) = TestFunctions(W) #test functions
-
+    (u, p, Tau_vec, D_vec) = split(w) #trial/solution functions
+    Tau = as_tensor([[Tau_vec[0], Tau_vec[1]], [Tau_vec[1], Tau_vec[2]]]) # Tau is symmetric
     D = as_tensor([[D_vec[0], D_vec[1]], [D_vec[1], -D_vec[0]]]) # D is symmetric and traceless
+
+    (v, q, S_vec, Phi_vec) = TestFunctions(W) #test functions
+    S = as_tensor([[S_vec[0], S_vec[1]], [S_vec[1], S_vec[2]]]) 
     Phi = as_tensor([[Phi_vec[0], Phi_vec[1]], [Phi_vec[1], -Phi_vec[0]]])
     
     # Momentum equation gets velocity TFs v
@@ -145,16 +149,19 @@ def oldroyd_3_JB_EVSS(h, rad, ecc, s, eta, l1, mu1):
     # Solve discrete variational form
     you = Function(W) #starting guess for Newton
 
-    #get NSE as starting guess for Newton
+    #get NSE as starting guess for Newton. Stokes probably works just as well too and would be faster
     nse_solution = steady_nse_solver.navier_stokes_JB(h, rad, ecc, s, eta) 
     print("NSE Solver done")
 
+    # For NSE solution, the elastic stress tensor should be zero, but D isn't
     u_nse = interpolate(nse_solution.velocity, V_space)
     p_nse = interpolate(nse_solution.pressure, P_space)
 
-    # Found that just using velocity and pressure works best, for some reason
-    D_start = interpolate(Constant((0.0, 0.0)), D_space)
-    Sigma_start = interpolate( Constant( ((0.0, 0.0), (0.0, 0.0)) ), T_space)
+    D_nse = sym(grad(u_nse))
+    D_nse_vec = as_vector([D_nse[0,0], D_nse[0,1]])
+    D_start = project(D_nse_vec, D_space)
+
+    Sigma_start = interpolate( Constant( (0.0, 0.0, 0.0) ), T_space)
 
     assigner = FunctionAssigner(W, [V_space, P_space, T_space, D_space])
     assigner.assign(you, [u_nse, p_nse, Sigma_start, D_start])
@@ -179,13 +186,14 @@ def oldroyd_3_JB_EVSS(h, rad, ecc, s, eta, l1, mu1):
         converged = False
         iters = -1
     
-    u1, p1, Sigma, D1_vec = you.split(deepcopy = True)
+    u1, p1, Sigma1_vec, D1_vec = you.split(deepcopy = True)
+    Sigma1 = as_tensor([[Sigma1_vec[0], Sigma1_vec[1]], [Sigma1_vec[1], Sigma1_vec[2]]])
     D1 = as_tensor([[D1_vec[0], D1_vec[1]], [D1_vec[1], -D1_vec[0]]]) # Reshape the strain/velocity gradient tensor
 
     #remember, Sigma here is not the stress tensor, but the "modified" tensor Sigma. Return both
     #stress = project(Sigma + 2*eta*D1, FunctionSpace(mesh, TensorElement("CG", triangle, 1, symmetry=True))) # project onto deg 1 space
     
-    return Results(converged, u1, D1, p1, Sigma, iters)
+    return Results(converged, u1, D1, p1, Sigma1, iters)
     
     
 # Lid-Driven Cavity Problem
@@ -206,7 +214,7 @@ def oldroyd_3_LDC_EVSS(h, s, eta, l1, mu1):
     # Element spaces
     V_elem = VectorElement("CG", triangle, 2) # Velocity, degree 2 elements
     P_elem = FiniteElement("CG", triangle, 1) # Pressure, degree 1 elements
-    T_elem = TensorElement("CG", triangle, 2, symmetry=True) # elastic "Stress" tensor tau, degree 2 elements
+    T_elem = VectorElement("CG", triangle, 2, dim=3) # "Stress" tensor (actually Sigma), degree 2 elements
     D_elem = VectorElement("CG", triangle, 1) # Deformation tensor, defined as VectorElement to exploit symmetry
 
     W_elem = MixedElement([V_elem, P_elem, T_elem, D_elem]) # Mixed element (u, p, Sigma, D_Vec)
@@ -237,12 +245,14 @@ def oldroyd_3_LDC_EVSS(h, s, eta, l1, mu1):
     
     # Variational Problem: Trial and Test Functions
     w = TrialFunction(W) 
-    (u, p, Tau, D_vec) = split(w) #trial/solution functions
-    (v, q, S, Phi_vec) = TestFunctions(W) #test functions
+    (u, p, Tau_vec, D_vec) = split(w) #trial/solution functions
+    Tau = as_tensor([[Tau_vec[0], Tau_vec[1]], [Tau_vec[1], Tau_vec[2]]]) # Tau is symmetric
+    D = as_tensor([[D_vec[0], D_vec[1]], [D_vec[1], -D_vec[0]]]) # D is symmetric and traceless
 
-    D = as_tensor([[D_vec[0], D_vec[1]], [D_vec[1], -D_vec[0]]]) # D is symmetric and traceless...
-    Phi = as_tensor([[Phi_vec[0], Phi_vec[1]], [Phi_vec[1], -Phi_vec[0]]]) # ... and so are test funcs for enforcement  
-    
+    (v, q, S_vec, Phi_vec) = TestFunctions(W) #test functions
+    S = as_tensor([[S_vec[0], S_vec[1]], [S_vec[1], S_vec[2]]]) 
+    Phi = as_tensor([[Phi_vec[0], Phi_vec[1]], [Phi_vec[1], -Phi_vec[0]]])
+
     # Momentum equation gets velocity Test Functs v
     # EVSS SF: -eta*Lapl(u) + del(u)*u + del(p) - del.Sigma - f = 0
     momentum = eta*inner(grad(u), grad(v))*dx + inner(dot(grad(u), u) + grad(p) - div(Tau) - f, v)*dx
@@ -270,13 +280,16 @@ def oldroyd_3_LDC_EVSS(h, s, eta, l1, mu1):
     nse_solution = steady_nse_solver.navier_stokes_LDC(h, s, eta) 
     print("NSE Solver done")
 
+    # For NSE solution, the elastic stress tensor should be zero, but D isn't
     u_nse = interpolate(nse_solution.velocity, V_space)
     p_nse = interpolate(nse_solution.pressure, P_space)
 
-    # Found that just using velocity and pressure works best, for some reason
-    D_start = interpolate(Constant((0.0, 0.0)), D_space)
-    Sigma_start = interpolate( Constant( ((0.0, 0.0), (0.0, 0.0)) ), T_space)
-    
+    D_nse = sym(grad(u_nse))
+    D_nse_vec = as_vector([D_nse[0,0], D_nse[0,1]])
+    D_start = project(D_nse_vec, D_space)
+
+    Sigma_start = interpolate( Constant( (0.0, 0.0, 0.0) ), T_space)
+
     assigner = FunctionAssigner(W, [V_space, P_space, T_space, D_space])
     assigner.assign(you, [u_nse, p_nse, Sigma_start, D_start])
 
@@ -298,16 +311,18 @@ def oldroyd_3_LDC_EVSS(h, s, eta, l1, mu1):
         converged = False
         iters = -1
     
-    u1, p1, Sigma, D1_vec = you.split(deepcopy = True)
+    u1, p1, Sigma1_vec, D1_vec = you.split(deepcopy = True)
+    Sigma1 = as_tensor([[Sigma1_vec[0], Sigma1_vec[1]], [Sigma1_vec[1], Sigma1_vec[2]]])
     D1 = as_tensor([[D1_vec[0], D1_vec[1]], [D1_vec[1], -D1_vec[0]]]) # Reshape the strain/velocity gradient tensor
 
     #remember, Sigma here is not the stress tensor, but the "modified" tensor Sigma. Return both
     #stress = project(Sigma + 2*eta*D1, FunctionSpace(mesh, TensorElement("CG", triangle, 1, symmetry=True))) # project onto deg 1 space
     
-    return Results(converged, u1, D1, p1, Sigma, iters)
+    return Results(converged, u1, D1, p1, Sigma1, iters)
     
 
 def oldroyd_3_LDC3D_EVSS(h, s, eta, l1, mu1):
+    print("def called without symmetry, and WITH adjusted NSE 0")
     nx = round(1/h)
     mesh = UnitCubeMesh(nx, nx, nx)
     print("Mesh loaded into FEniCS")
@@ -324,7 +339,7 @@ def oldroyd_3_LDC3D_EVSS(h, s, eta, l1, mu1):
     print("Creating element spaces...")
     V_elem = VectorElement("CG", tetrahedron, 2) # Velocity, degree 2 elements
     P_elem = FiniteElement("CG", tetrahedron, 1) # Pressure, degree 1 elements
-    T_elem = TensorElement("CG", tetrahedron, 2, symmetry=True) # elastic "Stress" tensor tau, degree 2 elements
+    T_elem = VectorElement("CG", tetrahedron, 2, dim=6) # elastic "Stress" tensor tau, degree 2 elements
     D_elem = VectorElement("CG", tetrahedron, 1, dim=5) # Deformation tensor, defined as VectorElement to exploit symmetry
 
     W_elem = MixedElement([V_elem, P_elem, T_elem, D_elem]) # Mixed element (u, p, Sigma, D_Vec)
@@ -358,13 +373,26 @@ def oldroyd_3_LDC3D_EVSS(h, s, eta, l1, mu1):
 
     # Variational Problem: Trial and Test Functions
     w = TrialFunction(W) 
-    (u, p, Tau, D_vec) = split(w) #trial/solution functions
-    (v, q, S, Phi_vec) = TestFunctions(W) #test functions
-
+    (u, p, Tau_vec, D_vec) = split(w) #trial/solution functions
+    # Elastic stress is symmetric
+    Tau = as_tensor([[Tau_vec[0], Tau_vec[1], Tau_vec[2]], \
+                     [Tau_vec[1], Tau_vec[3], Tau_vec[4]], \
+                     [Tau_vec[2], Tau_vec[4], Tau_vec[5]]])
     # D is symmetric and traceless...
-    D = as_tensor([[D_vec[0], D_vec[1], D_vec[2]], [D_vec[1], D_vec[3], D_vec[4]], [D_vec[2], D_vec[4], -D_vec[0]-D_vec[3]]])
-    # ... and so are test funcs for enforcement  
-    Phi = as_tensor([[Phi_vec[0], Phi_vec[1], Phi_vec[2]], [Phi_vec[1], Phi_vec[3], Phi_vec[4]], [Phi_vec[2], Phi_vec[4], -Phi_vec[0]-Phi_vec[3]]])
+    D = as_tensor([[D_vec[0], D_vec[1], D_vec[2]], \
+                   [D_vec[1], D_vec[3], D_vec[4]], \
+                   [D_vec[2], D_vec[4], -D_vec[0]-D_vec[3]]])
+
+
+    (v, q, S_vec, Phi_vec) = TestFunctions(W) #test functions
+    # test funcs for elastic stress are also symmetric
+    S = as_tensor([[S_vec[0], S_vec[1], S_vec[2]], \
+                   [S_vec[1], S_vec[3], S_vec[4]], \
+                   [S_vec[2], S_vec[4], S_vec[5]]])
+    # as are test funcs for enforcement of D
+    Phi = as_tensor([[Phi_vec[0], Phi_vec[1], Phi_vec[2]], \
+                     [Phi_vec[1], Phi_vec[3], Phi_vec[4]], \
+                     [Phi_vec[2], Phi_vec[4], -Phi_vec[0]-Phi_vec[3]]])
 
     # Momentum equation gets velocity Test Functs v
     # EVSS SF: -eta*Lapl(u) + del(u)*u + del(p) - del.Sigma - f = 0
@@ -399,9 +427,11 @@ def oldroyd_3_LDC3D_EVSS(h, s, eta, l1, mu1):
     u_nse = interpolate(nse_solution.velocity, V_space)
     p_nse = interpolate(nse_solution.pressure, P_space)
 
-    # Found that just using velocity and pressure works best, for some reason
-    D_start = interpolate(Constant((0.0, 0.0, 0.0, 0.0, 0.0)), D_space)
-    Sigma_start = interpolate( Constant( ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0)) ), T_space)
+    D_nse = sym(grad(u_nse))
+    D_nse_vec = as_vector([D_nse[0,0], D_nse[0,1], D_nse[0,2], D_nse[1,1], D_nse[1,2]])
+    D_start = project(D_nse_vec, D_space)
+
+    Sigma_start = interpolate( Constant( (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)), T_space)
     
     assigner = FunctionAssigner(W, [V_space, P_space, T_space, D_space])
     assigner.assign(you, [u_nse, p_nse, Sigma_start, D_start])
@@ -424,13 +454,17 @@ def oldroyd_3_LDC3D_EVSS(h, s, eta, l1, mu1):
         converged = False
         iters = -1
     
-    u1, p1, Sigma, D1_vec = you.split(deepcopy = True)
-    D1 = as_tensor([[D1_vec[0], D1_vec[1], D1_vec[2]], [D1_vec[1], D1_vec[3], D1_vec[4]], [D1_vec[2], D1_vec[4], -D1_vec[0]-D1_vec[3]]])
+    u1, p1, Sigma1_vec, D1_vec = you.split(deepcopy = True)
+    Sigma1 = as_tensor([[Sigma1_vec[0], Sigma1_vec[1], Sigma1_vec[2]], \
+                        [Sigma1_vec[1], Sigma1_vec[3], Sigma1_vec[4]], \
+                        [Sigma1_vec[2], Sigma1_vec[4], Sigma1_vec[5]]])
+    D1 = as_tensor([[D1_vec[0], D1_vec[1], D1_vec[2]], \
+                    [D1_vec[1], D1_vec[3], D1_vec[4]], \
+                    [D1_vec[2], D1_vec[4], -D1_vec[0]-D1_vec[3]]])
     
     #remember, Sigma here is not the stress tensor, but the "modified" tensor Sigma. Return both
     #stress = project(Sigma + 2*eta*D1, FunctionSpace(mesh, TensorElement("CG", tetrahedron, 1, symmetry=True))) # project onto deg 1 space
-    
-    return Results(converged, u1, D1, p1, Sigma, iters)
+    return Results(converged, u1, D1, p1, Sigma1, iters)
 
 
 
